@@ -378,6 +378,17 @@ class extends Component {
 ?>
 
 <div wire:poll.5s="refreshRows" class="min-h-screen text-gray-900 dark:text-gray-100/90">
+    <style>
+        @keyframes scan-vertical {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .animate-scan {
+            animation: scan-vertical 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+    </style>
 
 <x-header title="Permintaan Part Real-time"
           subtitle="Monitor permintaan part dari lini produksi secara langsung."
@@ -503,43 +514,76 @@ class extends Component {
                 <div wire:ignore x-data="supplyScanner()" x-init="init()" 
                      @supply-scanner-start.window="start()"
                      @supply-scanner-stop.window="stop()"
-                     class="relative overflow-hidden rounded-2xl bg-black aspect-square max-h-[300px] mx-auto border-2 border-dashed border-gray-400 flex items-center justify-center">
+                     x-ref="scannerContainer"
+                     tabindex="0" 
+                     class="relative overflow-hidden rounded-3xl bg-black aspect-square max-h-[320px] mx-auto shadow-2xl ring-1 ring-white/10 flex items-center justify-center focus:outline-none select-none">
                     
-                    <video id="supply-qr-video" class="w-full h-full object-cover"></video>
+                    <!-- Video Feed -->
+                    <video id="supply-qr-video" class="absolute inset-0 w-full h-full object-cover opacity-90"></video>
                     <canvas id="supply-qr-canvas" class="hidden"></canvas>
                     
-                    <div x-show="!isScanning" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 text-white p-4 text-center">
-                        <x-icon name="o-camera" class="w-12 h-12 mb-2 opacity-50" />
-                        <p class="text-sm">Kamera tidak aktif</p>
+                    <!-- Loading State -->
+                    <div x-show="!isScanning" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 text-center z-10">
+                        <div class="loading loading-spinner loading-lg text-primary mb-3"></div>
+                        <p class="text-xs font-medium uppercase tracking-wider animate-pulse text-gray-400">Inisialisasi Kamera...</p>
                     </div>
                     
-                    <!-- Scan Overlay -->
-                    <div x-show="isScanning" class="absolute inset-0 border-2 border-primary/50 m-8 rounded-lg animate-pulse shadow-[0_0_0_999px_rgba(0,0,0,0.5)]"></div>
+                    <!-- Professional Scanner Overlay -->
+                    <div x-show="isScanning" class="absolute inset-0 z-20 pointer-events-none">
+                         <!-- Dark Overlay Outside Viewfinder -->
+                         <div class="absolute inset-0 bg-black/40"></div>
+                         
+                         <!-- Active Viewfinder Box -->
+                         <div class="absolute inset-0 flex items-center justify-center">
+                             <div class="relative w-[70%] h-[70%] border border-white/20 rounded-xl overflow-hidden backdrop-blur-[1px] shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
+                                  
+                                  <!-- Corner Markers -->
+                                  <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg shadow-sm"></div>
+                                  <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg shadow-sm"></div>
+                                  <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg shadow-sm"></div>
+                                  <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg shadow-sm"></div>
+                                  
+                                  <!-- Laser Scan Animation -->
+                                  <div class="absolute left-0 right-0 h-0.5 bg-primary/80 shadow-[0_0_15px_rgba(var(--primary-rgb),1)] animate-scan"></div>
+                             </div>
+                         </div>
+                         
+                         <!-- Status Text Overlay -->
+                         <div class="absolute bottom-6 left-0 right-0 flex justify-center">
+                              <div class="px-4 py-1.5 rounded-full bg-black/60 border border-white/10 backdrop-blur-md flex items-center gap-2">
+                                  <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                  <span class="text-white text-[10px] font-bold uppercase tracking-wider">Mencari QR Code</span>
+                              </div>
+                         </div>
+                    </div>
                 </div>
 
                 <div class="text-center text-sm text-gray-500">
-                    Scan QR Code pada label part <b>{{ $supplyingItem->part->part_number }}</b>
+                    Arahkan kamera ke label part <b>{{ $supplyingItem->part->part_number }}</b>
                 </div>
 
                 @if($supplyError)
-                    <div class="p-3 rounded-lg bg-red-100 text-red-700 text-sm font-semibold flex items-center gap-2 animate-bounce">
-                        <x-icon name="o-exclamation-circle" class="w-5 h-5" />
-                        {{ $supplyError }}
+                    <div class="p-3 rounded-lg bg-red-100 text-red-700 text-sm font-semibold flex items-center gap-2 animate-bounce border border-red-200 shadow-sm">
+                        <x-icon name="o-exclamation-circle" class="w-5 h-5 shrink-0" />
+                        <span>{{ $supplyError }}</span>
                     </div>
                 @endif
                 
-                <div class="divider text-xs">ATAU INPUT MANUAL</div>
+                <div class="divider text-xs font-medium text-gray-400">OPSI LAIN</div>
                 
-                <div class="flex gap-2">
-                     <x-input placeholder="Ketik Part Number..." wire:model="supplyScannedCode" class="w-full" />
-                     <x-button label="Cek" wire:click="checkManualSupply" class="btn-primary" spinner />
+                <div class="flex gap-2 relative">
+                     <!-- Dummy focusable element to prevent keyboard auto-popup -->
+                     <div tabindex="-1" class="absolute w-0 h-0 overflow-hidden"></div>
+                     
+                     <x-input placeholder="Input Manual Part Number..." wire:model="supplyScannedCode" class="w-full" />
+                     <x-button label="Verifikasi" wire:click="checkManualSupply" class="btn-primary" spinner />
                 </div>
             </div>
 
             <!-- STEP 2: QUANTITY -->
             <div x-show="$wire.supplyStep === 'quantity'" class="space-y-6">
                 <div class="text-center py-4">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-3">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-3 shadow-inner ring-4 ring-green-50">
                         <x-icon name="o-check" class="w-8 h-8" />
                     </div>
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Part Terverifikasi!</h3>
@@ -547,20 +591,20 @@ class extends Component {
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                        <div class="text-xs text-blue-600 dark:text-blue-300 font-bold uppercase">Stok Tersedia</div>
-                        <div class="text-2xl font-bold text-blue-800 dark:text-blue-100">{{ $supplyingItem->part->stock }}</div>
+                    <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-center">
+                        <div class="text-[10px] text-blue-600 dark:text-blue-300 font-bold uppercase tracking-wide mb-1">Stok Tersedia</div>
+                        <div class="text-2xl font-black text-blue-800 dark:text-blue-100">{{ $supplyingItem->part->stock }}</div>
                     </div>
-                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                        <div class="text-xs text-gray-500 font-bold uppercase">Maksimal Supply</div>
-                        <div class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ $supplyMaxQty }}</div>
+                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-center">
+                        <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">Maksimal Supply</div>
+                        <div class="text-2xl font-black text-gray-800 dark:text-gray-200">{{ $supplyMaxQty }}</div>
                     </div>
                 </div>
 
-                <x-input label="Quantity Supply" type="number" wire:model="supplyQtyInput" min="1" :max="$supplyMaxQty" class="input-lg text-center font-bold text-xl" />
+                <x-input label="Quantity Supply" type="number" wire:model="supplyQtyInput" min="1" :max="$supplyMaxQty" class="input-lg text-center font-black text-2xl" />
                 
                 @if($supplyMaxQty == 0)
-                     <div class="text-error text-sm text-center">Stok habis, tidak dapat melakukan supply.</div>
+                     <div class="text-error text-sm text-center font-medium bg-red-50 p-2 rounded-lg">Stok habis, tidak dapat melakukan supply.</div>
                 @endif
             </div>
         @endif
@@ -831,15 +875,43 @@ function supplyScanner() {
             if (this.isScanning) return;
             if (typeof jsQR === 'undefined') { console.error('jsQR missing'); return; }
             
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-                .then(stream => {
-                    this.stream = stream;
-                    this.video.srcObject = stream;
-                    this.video.play();
-                    this.isScanning = true;
-                    this.interval = setInterval(() => this.tick(), 200);
-                })
-                .catch(err => console.error(err));
+            // UX: Set focus to scanner container to prevent keyboard popup
+            if(this.$refs.scannerContainer) {
+                 this.$refs.scannerContainer.focus();
+            }
+
+            // OPTIMIZATION: Small delay to let modal animation finish before hitting hardware
+            setTimeout(() => {
+                // OPTIMIZATION: Use lower resolution constraints for mobile performance
+                const constraints = { 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 480 }, // Lower res is faster on mobile
+                        height: { ideal: 480 } 
+                    } 
+                };
+
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(stream => {
+                        // Double check if we still need to scan (user might have closed modal)
+                        if (!document.getElementById('supply-qr-video')) {
+                            stream.getTracks().forEach(t => t.stop());
+                            return;
+                        }
+                        
+                        this.stream = stream;
+                        this.video.srcObject = stream;
+                        this.video.play();
+                        this.isScanning = true;
+                        
+                        // OPTIMIZATION: Reduce interval check slightly if needed, but 200ms is ok
+                        this.interval = setInterval(() => this.tick(), 200);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.isScanning = false; 
+                    });
+            }, 300); // 300ms delay
         },
 
         tick() {
@@ -862,8 +934,11 @@ function supplyScanner() {
         stop() {
             this.isScanning = false;
             clearInterval(this.interval);
-            if (this.stream) this.stream.getTracks().forEach(t => t.stop());
-            this.video.srcObject = null;
+            if (this.stream) {
+                this.stream.getTracks().forEach(t => t.stop());
+                this.stream = null;
+            }
+            if(this.video) this.video.srcObject = null;
         }
     }
 }

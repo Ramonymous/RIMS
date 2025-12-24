@@ -52,9 +52,6 @@
                 <x-menu-item title="Permintaan Part" icon="o-clipboard-document-list" link="/requests" />
                 <x-menu-item title="Penerimaan Part" icon="o-inbox-arrow-down" link="/receivings" />
                 @endcanany
-                @canany(['manage', 'outgoer'])
-                <x-menu-item title="Pengeluaran Part" icon="o-arrow-up-tray" link="/outgoings" />
-                @endcanany
                 <x-menu-item title="Stock Movements" icon="o-arrows-right-left" link="/stock-movements" />
                 <x-menu-item title="Telegram Link" icon="o-cube-transparent" link="/telegram-settings" />
 
