@@ -289,44 +289,44 @@ class extends Component {
 };
 ?>
 
-<div>
+<div class="bg-base-100 dark:bg-base-900">
     {{-- HEADER --}}
     <x-header title="Stock Movements" subtitle="Track all stock in/out movements" separator progress-indicator>
         <x-slot:actions>
-            <x-button label="Download Report" icon="o-arrow-down-tray" wire:click="downloadReport" class="btn-primary" spinner="downloadReport" />
+            <x-button label="Download Report" icon="o-arrow-down-tray" wire:click="downloadReport" class="btn-primary h-12 min-h-12" spinner="downloadReport" />
         </x-slot:actions>
     </x-header>
 
     {{-- FILTERS --}}
-    <x-card shadow class="mt-6 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10">
+    <x-card shadow class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl m-4">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <x-input placeholder="Search Part Number..." wire:model.live="filterPartNumber" icon="o-magnifying-glass" />
+            <x-input placeholder="Search Part Number..." wire:model.live="filterPartNumber" icon="o-magnifying-glass" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
             <x-select wire:model.live="filterType" placeholder="All Types" :options="[
                 ['id' => 'in', 'name' => 'In'],
                 ['id' => 'out', 'name' => 'Out']
-            ]" />
-            <x-input placeholder="Search PIC..." wire:model.live="filterPic" icon="o-magnifying-glass" />
-            <x-input type="date" wire:model.live="filterStartDate" label="Start Date" />
-            <x-input type="date" wire:model.live="filterEndDate" label="End Date" />
+            ]" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600" />
+            <x-input placeholder="Search PIC..." wire:model.live="filterPic" icon="o-magnifying-glass" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
+            <x-input type="date" wire:model.live="filterStartDate" label="Start Date" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
+            <x-input type="date" wire:model.live="filterEndDate" label="End Date" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
             <div class="flex items-end">
-                <x-button label="Reset Filters" icon="o-x-mark" class="btn-outline w-full" wire:click="$set('filterPartNumber', ''); $set('filterType', ''); $set('filterPic', ''); $set('filterStartDate', ''); $set('filterEndDate', '');" />
+                <x-button label="Reset Filters" icon="o-x-mark" class="btn-outline w-full h-12" wire:click="$set('filterPartNumber', ''); $set('filterType', ''); $set('filterPic', ''); $set('filterStartDate', ''); $set('filterEndDate', '');" />
             </div>
         </div>
     </x-card>
 
     {{-- MOVEMENTS TABLE --}}
-    <x-card shadow class="mt-6 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10">
+    <x-card shadow class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl m-4">
         <x-table :headers="$headers" :rows="$movements" with-pagination per-page="perPage" :per-page-values="[10,20,50,100]">
             @scope('cell_part_number', $movement)
-                <span class="font-mono text-sm">{{ $movement->part->part_number ?? 'N/A' }}</span>
+                <span class="font-mono text-sm text-base-content dark:text-base-100">{{ $movement->part->part_number ?? 'N/A' }}</span>
             @endscope
 
             @scope('cell_model', $movement)
-                <span class="text-sm">{{ $movement->part->model ?? '-' }}</span>
+                <span class="text-sm text-base-content/80 dark:text-base-400">{{ $movement->part->model ?? '-' }}</span>
             @endscope
 
             @scope('cell_variant', $movement)
-                <span class="text-sm">{{ $movement->part->variant ?? '-' }}</span>
+                <span class="text-sm text-base-content/80 dark:text-base-400">{{ $movement->part->variant ?? '-' }}</span>
             @endscope
 
             @scope('cell_type', $movement)
@@ -336,21 +336,21 @@ class extends Component {
             @endscope
 
             @scope('cell_acted_by', $movement)
-                <span class="text-sm">{{ $movement->user->name ?? 'Unknown' }}</span>
+                <span class="text-sm text-base-content/80 dark:text-base-400">{{ $movement->user->name ?? 'Unknown' }}</span>
             @endscope
 
             @scope('cell_qty', $movement)
-                <span class="font-semibold {{ $movement->type === 'in' ? 'text-emerald-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                <span class="font-semibold {{ $movement->type === 'in' ? 'text-success dark:text-success/80' : 'text-error dark:text-error/80' }}">
                     {{ $movement->type === 'in' ? '+' : '-' }}{{ $movement->qty }}
                 </span>
             @endscope
 
             @scope('cell_final_qty', $movement)
-                <span class="font-mono text-sm">{{ $movement->final_qty }}</span>
+                <span class="font-mono text-sm text-base-content dark:text-base-100">{{ $movement->final_qty }}</span>
             @endscope
 
             @scope('cell_created_at', $movement)
-                <span class="text-xs text-gray-600 dark:text-gray-400">{{ $movement->created_at->format('d/m/Y H:i') }}</span>
+                <span class="text-xs text-base-content/60 dark:text-base-500">{{ $movement->created_at->format('d/m/Y H:i') }}</span>
             @endscope
         </x-table>
     </x-card>

@@ -177,334 +177,263 @@ class extends Component {
     }
 }; ?>
 
-<div class="min-h-screen">
-    <x-header title="Dashboard" subtitle="Real-time inventory management overview" separator progress-indicator />
+<div class="min-h-screen bg-base-100 dark:bg-base-900">
+<x-header title="Dashboard" subtitle="Real-time inventory management overview" separator progress-indicator />
 
-    <div class="max-w-7xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6 px-3 sm:px-4 py-2">
 
-        @if (session('error'))
-            <x-alert title="Akses Ditolak" description="{{ session('error') }}" icon="o-exclamation-circle" class="alert-error" dismissible />
-        @endif
-        
-        <!-- Notification Card -->
-        <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl border border-indigo-400/30">
-                        <x-icon name="o-bell" class="w-8 h-8 text-indigo-600 dark:text-indigo-300" />
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notifikasi Push</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-300">
-                            <span x-data="{ subscribed: @entangle('isSubscribed') }">
-                                <span x-show="subscribed" class="text-emerald-600 dark:text-emerald-300">✓ Aktif - Anda akan menerima notifikasi</span>
-                                <span x-show="!subscribed" class="text-amber-600 dark:text-amber-300">Dapatkan notifikasi untuk permintaan part baru</span>
-                            </span>
-                        </p>
-                    </div>
+    @if (session('error'))
+        <x-alert title="Akses Ditolak" description="{{ session('error') }}" icon="o-exclamation-circle" class="alert-error shadow-lg" dismissible />
+    @endif
+    
+    <!-- Notification Card -->
+    <x-card shadow class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl transition-all">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-primary/10 dark:bg-primary/20 rounded-xl border border-primary/20 dark:border-primary/30">
+                    <x-icon name="o-bell" class="w-8 h-8 text-primary dark:text-primary/80" />
                 </div>
-                <div x-data="notificationHandler()" x-init="init()">
-                    <template x-if="!supported">
-                        <div class="px-4 py-2 rounded-lg bg-red-500/20 text-red-700 dark:text-red-300 text-sm border border-red-400/30">
-                            Browser tidak mendukung notifikasi
-                        </div>
-                    </template>
-                    <template x-if="supported && !isSubscribed">
-                        <x-button 
-                            icon="o-bell-alert" 
-                            class="btn-primary shadow-lg shadow-indigo-500/30" 
-                            @click="subscribe()"
-                            x-bind:disabled="loading"
-                            label="Aktifkan Notifikasi" 
-                        />
-                    </template>
-                    <template x-if="supported && isSubscribed">
-                        <x-button 
-                            icon="o-bell-slash" 
-                            class="btn-outline border-red-400/50 text-red-600 dark:text-red-300 hover:bg-red-500/10" 
-                            wire:click="unsubscribe"
-                            wire:confirm="Yakin ingin menonaktifkan notifikasi?"
-                            label="Nonaktifkan" 
-                        />
-                    </template>
+                <div>
+                    <h3 class="text-lg font-bold text-base-content dark:text-base-100">Notifikasi Push</h3>
+                    <p class="text-sm text-base-content/70 dark:text-base-300">
+                        <span x-data="{ subscribed: @entangle('isSubscribed') }">
+                            <span x-show="subscribed" class="text-success font-medium">✓ Aktif - Anda akan menerima notifikasi</span>
+                            <span x-show="!subscribed" class="text-warning font-medium">Dapatkan notifikasi untuk permintaan part baru</span>
+                        </span>
+                    </p>
                 </div>
             </div>
-        </x-card>
-
-        <!-- Key Metrics Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Requests Today -->
-            <x-stat
-                class="bg-blue-50 dark:bg-gradient-to-br dark:from-blue-950 dark:via-slate-900 dark:to-blue-900 dark:bg-white/5 backdrop-blur-xl border border-blue-200 dark:border-blue-400/20 rounded-2xl"
-                title="Permintaan Hari Ini"
-                :value="$this->totalRequestsToday"
-                icon="o-clipboard-document-list"
-                description="Request sedang diproses" />
-            
-            <!-- Active Parts -->
-            <x-stat
-                class="bg-emerald-50 dark:bg-gradient-to-br dark:from-emerald-950 dark:via-slate-900 dark:to-emerald-900 dark:bg-white/5 backdrop-blur-xl border border-emerald-200 dark:border-emerald-400/20 rounded-2xl"
-                title="Part Tersedia"
-                :value="$this->activePartsCount"
-                icon="o-cube"
-                description="Jenis part aktif" />
-            
-            <!-- Low Stock Items -->
-            <a href="/parts">
-                <x-stat
-                    class="bg-amber-50 dark:bg-gradient-to-br dark:from-amber-950 dark:via-slate-900 dark:to-orange-900 dark:bg-white/5 backdrop-blur-xl border border-amber-200 dark:border-amber-400/20 rounded-2xl cursor-pointer hover:border-amber-300 dark:hover:border-amber-400/40 transition-all"
-                    title="Stock Rendah"
-                    :value="$this->lowStockItems"
-                    icon="o-exclamation-triangle"
-                    description="Perlu reorder" />
-            </a>
-            
-            <!-- Pending Movements -->
-            <x-stat
-                class="bg-purple-50 dark:bg-gradient-to-br dark:from-purple-950 dark:via-slate-900 dark:to-purple-900 dark:bg-white/5 backdrop-blur-xl border border-purple-200 dark:border-purple-400/20 rounded-2xl"
-                title="Gerakan Hari Ini"
-                :value="$this->totalMovementsToday"
-                icon="o-arrow-path"
-                description="Masuk & Keluar" />
+            <div x-data="notificationHandler()" x-init="init()" class="w-full md:w-auto">
+                <template x-if="!supported">
+                    <div class="px-4 py-2 rounded-lg bg-error/10 text-error text-sm border border-error/20">
+                        Browser tidak mendukung notifikasi
+                    </div>
+                </template>
+                <template x-if="supported && !isSubscribed">
+                    <x-button 
+                        icon="o-bell-alert" 
+                        class="btn-primary btn-block md:btn-wide shadow-md h-12 min-h-12" 
+                        @click="subscribe()"
+                        x-bind:disabled="loading"
+                        label="Aktifkan Notifikasi" 
+                    />
+                </template>
+                <template x-if="supported && isSubscribed">
+                    <x-button 
+                        icon="o-bell-slash" 
+                        class="btn-outline btn-error btn-block md:btn-wide h-12 min-h-12" 
+                        wire:click="unsubscribe"
+                        wire:confirm="Yakin ingin menonaktifkan notifikasi?"
+                        label="Nonaktifkan" 
+                    />
+                </template>
+            </div>
         </div>
+    </x-card>
 
-        <!-- Movement Summary & Request Status -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Movement Summary -->
-            <div class="lg:col-span-2 space-y-4">
-                <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl">
-                    <x-slot:title>Ringkasan Gerakan Hari Ini</x-slot:title>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 rounded-xl border border-green-500/20 bg-green-500/5">
-                            <div class="flex items-center gap-2 mb-2">
-                                <x-icon name="o-arrow-down-tray" class="w-5 h-5 text-green-600 dark:text-green-400" />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Barang Masuk</span>
-                            </div>
-                            <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $this->inMovementsToday }}</div>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">Total qty penerimaan</p>
-                        </div>
-                        <div class="p-4 rounded-xl border border-red-500/20 bg-red-500/5">
-                            <div class="flex items-center gap-2 mb-2">
-                                <x-icon name="o-arrow-up-tray" class="w-5 h-5 text-red-600 dark:text-red-400" />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Barang Keluar</span>
-                            </div>
-                            <div class="text-3xl font-bold text-red-600 dark:text-red-400">{{ $this->outMovementsToday }}</div>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">Total qty pengeluaran</p>
-                        </div>
-                    </div>
-                </x-card>
+    <!-- Key Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <x-stat
+            class="border border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800/50"
+            title="Permintaan Hari Ini"
+            :value="$this->totalRequestsToday"
+            icon="o-clipboard-document-list"
+            description="Request sedang diproses"
+            color="text-primary dark:text-primary/80" />
+        
+        <x-stat
+            class="border border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800/50"
+            title="Part Tersedia"
+            :value="$this->activePartsCount"
+            icon="o-cube"
+            description="Jenis part aktif"
+            color="text-success dark:text-success/80" />
+        
+        <a href="/parts" class="block group">
+            <x-stat
+                class="border border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800/50 group-hover:bg-warning/5 dark:group-hover:bg-warning/10 transition-colors"
+                title="Stock Rendah"
+                :value="$this->lowStockItems"
+                icon="o-exclamation-triangle"
+                description="Perlu reorder segera"
+                color="text-warning dark:text-warning/80" />
+        </a>
+        
+        <x-stat
+            class="border border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800/50"
+            title="Gerakan Hari Ini"
+            :value="$this->totalMovementsToday"
+            icon="o-arrow-path"
+            description="In & Outbound"
+            color="text-purple-600 dark:text-purple-400" />
+    </div>
 
-                <!-- Pending Batch Operations -->
-                <div class="grid grid-cols-2 gap-4">
-                    <a href="/receivings">
-                        <x-card class="bg-emerald-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-emerald-200 dark:border-white/10 rounded-2xl hover:border-emerald-300 dark:hover:border-emerald-400/40 transition-all cursor-pointer h-full">
-                            <div class="flex items-center gap-3">
-                                <div class="p-3 bg-emerald-500/10 rounded-lg">
-                                    <x-icon name="o-inbox-arrow-down" class="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">Penerimaan</p>
-                                    <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->pendingReceivings }}</p>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">menunggu</p>
-                                </div>
-                            </div>
-                        </x-card>
-                    </a>
-                    <a href="/outgoings">
-                        <x-card class="bg-amber-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-amber-200 dark:border-white/10 rounded-2xl hover:border-amber-300 dark:hover:border-amber-400/40 transition-all cursor-pointer h-full">
-                            <div class="flex items-center gap-3">
-                                <div class="p-3 bg-amber-500/10 rounded-lg">
-                                    <x-icon name="o-archive-box" class="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">Pengeluaran</p>
-                                    <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->pendingOutgoings }}</p>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">menunggu</p>
-                                </div>
-                            </div>
-                        </x-card>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Request Status Breakdown -->
-            <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl">
-                <x-slot:title>Status Permintaan</x-slot:title>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">Pending</span>
-                            <span class="font-semibold text-yellow-600 dark:text-yellow-400">{{ $this->requestStatusBreakdown['pending'] }}</span>
+    <!-- Movement Summary & Status -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <x-card title="Ringkasan Gerakan" shadow class="bg-base-50 dark:bg-base-800/50 border border-base-200 dark:border-base-700">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl border border-success/20 bg-success/5 dark:bg-success/10 flex flex-col items-center sm:items-start">
+                        <div class="flex items-center gap-2 mb-2 text-success dark:text-success/80">
+                            <x-icon name="o-arrow-down-tray" class="w-5 h-5" />
+                            <span class="text-sm font-semibold uppercase tracking-wider">Barang Masuk</span>
                         </div>
-                        <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full" 
-                                 style="width: {{ $this->requestStatusBreakdown['pending'] > 0 ? '100%' : '0%' }}"></div>
-                        </div>
+                        <div class="text-4xl font-black text-success dark:text-success/80">{{ $this->inMovementsToday }}</div>
+                        <p class="text-xs opacity-70 mt-2 font-medium">Unit diterima hari ini</p>
                     </div>
-                    <div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">Fulfilled</span>
-                            <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ $this->requestStatusBreakdown['fulfilled'] }}</span>
+                    <div class="p-4 rounded-xl border border-error/20 bg-error/5 dark:bg-error/10 flex flex-col items-center sm:items-start">
+                        <div class="flex items-center gap-2 mb-2 text-error dark:text-error/80">
+                            <x-icon name="o-arrow-up-tray" class="w-5 h-5" />
+                            <span class="text-sm font-semibold uppercase tracking-wider">Barang Keluar</span>
                         </div>
-                        <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" 
-                                 style="width: {{ $this->requestStatusBreakdown['fulfilled'] > 0 ? '100%' : '0%' }}"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-gray-700 dark:text-gray-300">Urgent</span>
-                            <span class="font-semibold text-red-600 dark:text-red-400">{{ $this->requestStatusBreakdown['urgent'] }}</span>
-                        </div>
-                        <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full" 
-                                 style="width: {{ $this->requestStatusBreakdown['urgent'] > 0 ? '100%' : '0%' }}"></div>
-                        </div>
+                        <div class="text-4xl font-black text-error dark:text-error/80">{{ $this->outMovementsToday }}</div>
+                        <p class="text-xs opacity-70 mt-2 font-medium">Unit dikeluarkan hari ini</p>
                     </div>
                 </div>
             </x-card>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <x-card class="bg-base-50 dark:bg-base-800/50 border-l-4 border-l-success hover:shadow-lg transition-all cursor-pointer active:scale-[0.99]">
+                    <a href="/receivings" class="flex items-center gap-4 p-3">
+                        <div class="p-3 bg-success/10 rounded-full text-success dark:text-success/80">
+                            <x-icon name="o-inbox-arrow-down" class="w-8 h-8" />
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-70 dark:opacity-80">Penerimaan Pending</p>
+                            <p class="text-2xl font-bold text-base-content dark:text-base-100">{{ $this->pendingReceivings }}</p>
+                        </div>
+                    </a>
+                </x-card>
+                <x-card class="bg-base-50 dark:bg-base-800/50 border-l-4 border-l-warning hover:shadow-lg transition-all cursor-pointer active:scale-[0.99]">
+                    <a href="/outgoings" class="flex items-center gap-4 p-3">
+                        <div class="p-3 bg-warning/10 rounded-full text-warning dark:text-warning/80">
+                            <x-icon name="o-archive-box" class="w-8 h-8" />
+                        </div>
+                        <div>
+                            <p class="text-sm opacity-70 dark:opacity-80">Pengeluaran Pending</p>
+                            <p class="text-2xl font-bold text-base-content dark:text-base-100">{{ $this->pendingOutgoings }}</p>
+                        </div>
+                    </a>
+                </x-card>
+            </div>
         </div>
 
-        <!-- Low Stock Alerts -->
-        @if ($this->lowStockAlerts->count() > 0)
-        <x-card shadow class="bg-red-100 dark:bg-gradient-to-br dark:from-red-950 dark:via-slate-900 dark:to-orange-950 dark:bg-white/5 backdrop-blur-xl border border-red-300 dark:border-red-400/20 rounded-2xl">
-            <x-slot:title class="text-red-300">🚨 Peringatan Stock Rendah</x-slot:title>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                @foreach ($this->lowStockAlerts as $part)
-                <div class="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
-                    <p class="font-mono text-sm font-semibold text-red-700 dark:text-red-300 truncate">{{ $part->part_number }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400 truncate">{{ $part->part_name }}</p>
-                    <div class="mt-2 flex items-center justify-between">
-                        <span class="text-lg font-bold text-red-600 dark:text-red-400">{{ $part->stock }}</span>
-                        <span class="text-xs text-gray-500">unit</span>
+        <!-- Status Breakdown -->
+        <x-card title="Status Permintaan" shadow class="bg-base-50 dark:bg-base-800/50 border border-base-200 dark:border-base-700">
+            <div class="space-y-6 mt-4">
+                @foreach([
+                    ['label' => 'Pending', 'val' => 'pending', 'color' => 'from-yellow-500 to-amber-400', 'text' => 'text-warning dark:text-warning/80'],
+                    ['label' => 'Fulfilled', 'val' => 'fulfilled', 'color' => 'from-success to-teal-400', 'text' => 'text-success dark:text-success/80'],
+                    ['label' => 'Urgent', 'val' => 'urgent', 'color' => 'from-error to-rose-400', 'text' => 'text-error dark:text-error/80']
+                ] as $item)
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-base-content/80 dark:text-base-300">{{ $item['label'] }}</span>
+                        <span class="font-bold {{ $item['text'] }}">{{ $this->requestStatusBreakdown[$item['val']] }}</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-base-200 dark:bg-base-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r {{ $item['color'] }}" 
+                             style="width: {{ $this->requestStatusBreakdown[$item['val']] > 0 ? '100%' : '5%' }}"></div>
                     </div>
                 </div>
                 @endforeach
             </div>
         </x-card>
-        @endif
+    </div>
 
-        <!-- Quick Actions -->
-        <x-card title="Aksi Cepat" shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <a href="/requests" class="block p-6 rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 hover:from-blue-500/20 hover:to-indigo-500/20 transition-all hover:-translate-y-1">
-                    <x-icon name="o-plus-circle" class="w-10 h-10 text-blue-600 dark:text-blue-300 mb-3" />
-                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Buat Permintaan</h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Request part baru</p>
-                </a>
-                <a href="/request-list" class="block p-6 rounded-xl border border-white/10 bg-gradient-to-br from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 transition-all hover:-translate-y-1">
-                    <x-icon name="o-list-bullet" class="w-10 h-10 text-purple-600 dark:text-purple-300 mb-3" />
-                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Lihat Permintaan</h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Monitor request aktif</p>
-                </a>
-                <a href="/receivings" class="block p-6 rounded-xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 transition-all hover:-translate-y-1">
-                    <x-icon name="o-arrow-down-tray" class="w-10 h-10 text-emerald-600 dark:text-emerald-300 mb-3" />
-                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Penerimaan Part</h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Input barang masuk</p>
-                </a>
-                <a href="/outgoings" class="block p-6 rounded-xl border border-white/10 bg-gradient-to-br from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 transition-all hover:-translate-y-1">
-                    <x-icon name="o-arrow-up-tray" class="w-10 h-10 text-amber-600 dark:text-amber-300 mb-3" />
-                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Pengeluaran Part</h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Supply ke line produksi</p>
-                </a>
+    <!-- Low Stock Alerts -->
+    @if ($this->lowStockAlerts->count() > 0)
+    <x-card shadow class="bg-error/5 dark:bg-error/10 border border-error/30 dark:border-error/50 rounded-2xl">
+        <x-slot:title class="text-error font-bold">🚨 Peringatan Stock Rendah</x-slot:title>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            @foreach ($this->lowStockAlerts as $part)
+            <div class="p-3 rounded-xl border border-error/20 bg-base-50 dark:bg-base-800 shadow-sm group hover:border-error/50 transition-colors">
+                <p class="font-mono text-xs font-bold text-error truncate">{{ $part->part_number }}</p>
+                <p class="text-[10px] text-base-content/60 dark:text-base-400 truncate">{{ $part->part_name }}</p>
+                <div class="mt-2 flex items-end justify-between">
+                    <span class="text-xl font-black text-base-content dark:text-base-100">{{ $part->stock }}</span>
+                    <span class="text-[10px] uppercase font-bold opacity-40">Unit</span>
+                </div>
             </div>
-        </x-card>
+            @endforeach
+        </div>
+    </x-card>
+    @endif
 
-        <!-- Recent Activity Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Recent Movements -->
-            <div class="lg:col-span-2">
-                <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl h-full">
-                    <x-slot:title>Gerakan Stok Terbaru</x-slot:title>
-                    <div class="space-y-2 max-h-96 overflow-y-auto">
-                        @forelse ($this->recentMovements as $movement)
-                        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/10 transition-all">
-                            <div class="flex items-center gap-3 flex-1 min-w-0">
-                                <div class="p-2 rounded-lg {{ $movement->type === 'in' ? 'bg-green-500/10' : 'bg-red-500/10' }}">
-                                    <x-icon :name="$movement->type === 'in' ? 'o-arrow-down' : 'o-arrow-up'" 
-                                           :class="'w-4 h-4 ' . ($movement->type === 'in' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')" />
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-mono text-sm font-semibold truncate text-gray-900 dark:text-white">{{ $movement->part->part_number }}</p>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $movement->user->name }}</p>
-                                </div>
+    <!-- Quick Actions -->
+    <x-card title="Aksi Cepat" shadow class="bg-base-50 dark:bg-base-800/50 border border-base-200 dark:border-base-700">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            @php
+                $actions = [
+                    ['url' => '/requests', 'icon' => 'o-plus-circle', 'color' => 'text-primary dark:text-primary/80', 'bg' => 'bg-primary/10 dark:bg-primary/20', 'label' => 'Buat Permintaan', 'desc' => 'Request part baru'],
+                    ['url' => '/request-list', 'icon' => 'o-list-bullet', 'color' => 'text-purple-600 dark:text-purple-400', 'bg' => 'bg-purple-500/10 dark:bg-purple-500/20', 'label' => 'Monitor', 'desc' => 'Cek request aktif'],
+                    ['url' => '/receivings', 'icon' => 'o-arrow-down-tray', 'color' => 'text-success dark:text-success/80', 'bg' => 'bg-success/10 dark:bg-success/20', 'label' => 'Inbound', 'desc' => 'Input barang masuk'],
+                    ['url' => '/outgoings', 'icon' => 'o-arrow-up-tray', 'color' => 'text-warning dark:text-warning/80', 'bg' => 'bg-warning/10 dark:bg-warning/20', 'label' => 'Outbound', 'desc' => 'Supply ke line']
+                ];
+            @endphp
+            @foreach($actions as $act)
+            <a href="{{ $act['url'] }}" class="group p-4 rounded-xl border border-base-200 dark:border-base-700 hover:bg-base-100 dark:hover:bg-base-700 transition-all active:scale-[0.98]">
+                <div class="p-3 {{ $act['bg'] }} rounded-lg w-fit mb-3 group-hover:scale-110 transition-transform">
+                    <x-icon name="{{ $act['icon'] }}" class="w-8 h-8 {{ $act['color'] }}" />
+                </div>
+                <h4 class="font-bold text-base-content dark:text-base-100">{{ $act['label'] }}</h4>
+                <p class="text-xs text-base-content/60 dark:text-base-400">{{ $act['desc'] }}</p>
+            </a>
+            @endforeach
+        </div>
+    </x-card>
+
+    <!-- Activity Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <x-card title="Gerakan Stok Terbaru" shadow class="bg-base-50 dark:bg-base-800/50 border border-base-200 dark:border-base-700 h-full">
+                <div class="divide-y divide-base-200 dark:divide-base-700 max-h-96 overflow-y-auto pr-2">
+                    @forelse ($this->recentMovements as $movement)
+                    <div class="flex items-center justify-between py-3 group">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-lg {{ $movement->type === 'in' ? 'bg-success/10 text-success dark:text-success/80' : 'bg-error/10 text-error dark:text-error/80' }}">
+                                <x-icon :name="$movement->type === 'in' ? 'o-arrow-down' : 'o-arrow-up'" class="w-4 h-4" />
                             </div>
-                            <div class="text-right">
-                                <p class="font-semibold {{ $movement->type === 'in' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                    {{ $movement->type === 'in' ? '+' : '-' }}{{ $movement->qty }}
-                                </p>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">{{ $movement->created_at->format('H:i') }}</p>
+                            <div>
+                                <p class="font-mono text-sm font-bold text-base-content dark:text-base-100">{{ $movement->part->part_number }}</p>
+                                <p class="text-xs text-base-content/60 dark:text-base-400">{{ $movement->user->name }}</p>
                             </div>
                         </div>
-                        @empty
-                        <p class="text-center text-gray-600 dark:text-gray-400 py-4">Tidak ada gerakan hari ini</p>
-                        @endforelse
-                    </div>
-                </x-card>
-            </div>
-
-            <!-- Recent Requests -->
-            <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl">
-                <x-slot:title>Permintaan Terbaru</x-slot:title>
-                <div class="space-y-2 max-h-96 overflow-y-auto">
-                    @forelse ($this->recentRequests as $request)
-                    <div class="p-3 rounded-lg border border-gray-200 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/10 transition-all">
-                        <div class="flex items-start justify-between mb-2">
-                            <p class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-300 truncate flex-1">{{ $request->part->part_number }}</p>
-                            <span class="badge badge-sm {{ $request->status === 'pending' ? 'badge-warning' : 'badge-success' }}">{{ ucfirst($request->status) }}</span>
-                        </div>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 truncate mb-2">{{ $request->part->part_name }}</p>
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-gray-600 dark:text-gray-500">Qty: {{ $request->quantity }}</span>
-                            <span class="text-gray-600 dark:text-gray-500">{{ $request->request?->requested_at?->format('H:i') ?? '-' }}</span>
+                        <div class="text-right">
+                            <p class="font-bold {{ $movement->type === 'in' ? 'text-success dark:text-success/80' : 'text-error dark:text-error/80' }}">
+                                {{ $movement->type === 'in' ? '+' : '-' }}{{ $movement->qty }}
+                            </p>
+                            <p class="text-[10px] font-medium text-base-content/50 dark:text-base-500">{{ $movement->created_at->format('H:i') }}</p>
                         </div>
                     </div>
                     @empty
-                    <p class="text-center text-gray-600 dark:text-gray-400 py-4">Tidak ada permintaan</p>
+                    <div class="text-center opacity-50 py-10">Tidak ada gerakan hari ini</div>
                     @endforelse
                 </div>
             </x-card>
         </div>
 
-        <!-- Recent Receivings -->
-        <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl">
-            <x-slot:title>Penerimaan Terbaru</x-slot:title>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-white/10">
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">No. Penerimaan</th>
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Part Number</th>
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Qty</th>
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Penerima</th>
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Waktu</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($this->recentReceivings as $receiving)
-                        <tr class="border-b border-gray-200 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
-                            <td class="py-3 px-4 font-mono text-blue-600 dark:text-blue-300">{{ $receiving->receiving_number }}</td>
-                            <td class="py-3 px-4 font-mono text-sm text-gray-900 dark:text-white">{{ $receiving->part->part_number }}</td>
-                            <td class="py-3 px-4 font-semibold text-gray-900 dark:text-white">{{ $receiving->quantity }}</td>
-                            <td class="py-3 px-4 text-gray-700 dark:text-gray-400">{{ $receiving->receivedBy->name }}</td>
-                            <td class="py-3 px-4">
-                                <span class="badge badge-sm {{ $receiving->status === 'completed' ? 'badge-success' : ($receiving->status === 'pending' ? 'badge-warning' : 'badge-info') }}">
-                                    {{ ucfirst($receiving->status) }}
-                                </span>
-                            </td>
-                            <td class="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">{{ $receiving->created_at->format('d/m H:i') }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="6" class="py-6 text-center text-gray-600 dark:text-gray-400">Tidak ada data penerimaan</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        <x-card title="Permintaan Terbaru" shadow class="bg-base-50 dark:bg-base-800/50 border border-base-200 dark:border-base-700">
+            <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                @forelse ($this->recentRequests as $request)
+                <div class="p-3 rounded-xl bg-base-100 dark:bg-base-700 border border-base-200 dark:border-base-600 hover:border-primary/30 transition-all">
+                    <div class="flex items-start justify-between mb-1">
+                        <p class="font-mono text-xs font-bold text-primary dark:text-primary/80">{{ $request->part->part_number }}</p>
+                        <span class="badge badge-xs {{ $request->status === 'pending' ? 'badge-warning' : 'badge-success' }} font-bold text-[10px]">{{ $request->status }}</span>
+                    </div>
+                    <p class="text-[10px] text-base-content/60 dark:text-base-400 truncate">{{ $request->part->part_name }}</p>
+                    <div class="mt-2 flex items-center justify-between text-[10px] font-bold text-base-content/50 dark:text-base-500">
+                        <span>QTY: {{ $request->quantity }}</span>
+                        <span>{{ $request->created_at?->diffForHumans() ?? '-' }}</span>
+                    </div>
+                </div>
+                @empty
+                <div class="text-center opacity-50 py-10 italic">Kosong</div>
+                @endforelse
             </div>
         </x-card>
     </div>
+</div>
 </div>
 
 @push('scripts')

@@ -517,37 +517,36 @@ new #[Layout('components.layouts.app')] #[Title('Penerimaan Part')] class extend
     }
 }; ?>
 
-<div class="min-h-screen text-gray-900 dark:text-gray-100/90">
+<div class="min-h-screen bg-base-100 dark:bg-base-900">
     @if($showList)
-        {{-- List View (Tidak Berubah) --}}
-        <div class="space-y-6">
+        {{-- List View --}}
+        <div class="space-y-6 p-4">
             {{-- Header --}}
             <div class="flex justify-between items-center">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Daftar Penerimaan Part</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Kelola penerimaan barang masuk</p>
+                    <h2 class="text-2xl font-bold text-base-content dark:text-base-100">Daftar Penerimaan Part</h2>
+                    <p class="text-sm text-base-content/70 dark:text-base-400">Kelola penerimaan barang masuk</p>
                 </div>
-                <x-button label="Buat Penerimaan Baru" wire:click="toggleView" icon="o-plus" class="btn-primary" />
+                <x-button label="Buat Penerimaan Baru" wire:click="toggleView" icon="o-plus" class="btn-primary h-12 min-h-12" />
             </div>
             
             {{-- Filter Section --}}
-            <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-gray-100">
-                <div class="grid grid-cols-3 gap-4">
-                    {{-- Optimasi: debounce --}}
-                    <x-input wire:model.live.debounce.400ms="filterReceivingNumber" label="Nomor Penerimaan" placeholder="Cari nomor..." icon="o-magnifying-glass" />
+            <x-card shadow class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <x-input wire:model.live.debounce.400ms="filterReceivingNumber" label="Nomor Penerimaan" placeholder="Cari nomor..." icon="o-magnifying-glass" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
                     <x-select wire:model.live="filterStatus" label="Status" placeholder="Semua Status" :options="[
                         ['id' => 'draft', 'name' => 'Draft'],
                         ['id' => 'completed', 'name' => 'Selesai'],
                         ['id' => 'cancelled', 'name' => 'Dibatalkan']
-                    ]" />
+                    ]" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600" />
                     <div class="flex items-end">
-                        <x-button label="Reset Filter" wire:click="resetFilter" icon="o-arrow-path" class="btn-ghost" />
+                        <x-button label="Reset Filter" wire:click="resetFilter" icon="o-arrow-path" class="btn-ghost h-12" />
                     </div>
                 </div>
             </x-card>
 
             {{-- Receivings Table --}}
-            <x-card shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-gray-100">
+            <x-card shadow class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl">
                 <x-table :headers="[
                     ['key' => 'receiving_number', 'label' => 'Nomor Penerimaan'],
                     ['key' => 'received_at', 'label' => 'Tanggal Terima'],
@@ -569,42 +568,41 @@ new #[Layout('components.layouts.app')] #[Title('Penerimaan Part')] class extend
 
                     @scope('cell_actions', $receiving)
                         <div class="flex gap-2">
-                            <x-button icon="o-eye" wire:click="openView('{{ $receiving['receiving_number'] }}')" class="btn-sm btn-ghost" tooltip="Lihat Detail" />
+                            <x-button icon="o-eye" wire:click="openView('{{ $receiving['receiving_number'] }}')" class="btn-sm btn-ghost h-10" tooltip="Lihat Detail" />
                             @if($receiving['status'] === 'draft')
-                                <x-button icon="o-pencil" wire:click="editDraft('{{ $receiving['receiving_number'] }}')" class="btn-sm btn-ghost" tooltip="Edit Draft" />
-                                <x-button icon="o-trash" wire:click="delete('{{ $receiving['receiving_number'] }}')" wire:confirm="Yakin ingin menghapus penerimaan ini?" class="btn-sm btn-ghost text-error" tooltip="Hapus" />
+                                <x-button icon="o-pencil" wire:click="editDraft('{{ $receiving['receiving_number'] }}')" class="btn-sm btn-ghost h-10" tooltip="Edit Draft" />
+                                <x-button icon="o-trash" wire:click="delete('{{ $receiving['receiving_number'] }}')" wire:confirm="Yakin ingin menghapus penerimaan ini?" class="btn-sm btn-ghost text-error h-10" tooltip="Hapus" />
                             @endif
                         </div>
                     @endscope
                 </x-table>
                 {{-- Info for limited data --}}
-                <div class="text-xs text-gray-500 mt-2 text-right italic">
+                <div class="text-xs text-base-content/50 dark:text-base-500 mt-2 text-right italic">
                     * Menampilkan max 200 data terakhir untuk performa. Gunakan filter untuk mencari data lama.
                 </div>
             </x-card>
         </div>
     @else
         {{-- Create/Edit Form View --}}
-        <div class="space-y-6">
+        <div class="space-y-6 p-4">
             {{-- Header --}}
             <div class="flex justify-between items-center">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Buat Penerimaan Part</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Tambahkan item ke keranjang penerimaan</p>
+                    <h2 class="text-2xl font-bold text-base-content dark:text-base-100">Buat Penerimaan Part</h2>
+                    <p class="text-sm text-base-content/70 dark:text-base-400">Tambahkan item ke keranjang penerimaan</p>
                 </div>
                 <div class="flex gap-2">
                     @if($this->hasItems())
-                        <x-button label="Batal & Hapus Draft" wire:click="cancelAndClearDraft" icon="o-x-mark" class="btn-error btn-ghost" wire:confirm="Yakin ingin membatalkan dan menghapus semua item?" />
+                        <x-button label="Batal & Hapus Draft" wire:click="cancelAndClearDraft" icon="o-x-mark" class="btn-error btn-ghost h-12" wire:confirm="Yakin ingin membatalkan dan menghapus semua item?" />
                     @endif
-                    <x-button label="Kembali ke Daftar" wire:click="toggleView" icon="o-arrow-left" class="btn-ghost" />
+                    <x-button label="Kembali ke Daftar" wire:click="toggleView" icon="o-arrow-left" class="btn-ghost h-12" />
                 </div>
             </div>
 
             <form wire:submit="submit" class="space-y-6">
-                {{-- Receipt Info (MODIFIKASI DI SINI) --}}
-                <x-card title="Informasi Penerimaan" shadow separator class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-gray-100">
-                    <div class="grid grid-cols-3 gap-4">
-                        {{-- MODIFIKASI: Pilihan Jenis Sumber --}}
+                {{-- Receipt Info --}}
+                <x-card title="Informasi Penerimaan" shadow separator class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <x-select 
                             label="Jenis Sumber" 
                             wire:model.live="sourceType" 
@@ -613,10 +611,9 @@ new #[Layout('components.layouts.app')] #[Title('Penerimaan Part')] class extend
                                 ['id' => 'SUBCONT', 'name' => 'SUBCONT (Input Manual)']
                             ]" 
                             required 
+                            class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600"
                         />
                         
-                        {{-- Optimasi: blur/debounce --}}
-                        {{-- MODIFIKASI: Terapkan Readonly jika INHOUSE --}}
                         <x-input 
                             label="Nomor Penerimaan" 
                             type="text" 
@@ -624,22 +621,21 @@ new #[Layout('components.layouts.app')] #[Title('Penerimaan Part')] class extend
                             placeholder="Masukkan nomor penerimaan" 
                             required 
                             :readonly="$sourceType === 'INHOUSE'"
-                            class="{{ $sourceType === 'INHOUSE' ? 'bg-gray-200 dark:bg-gray-700' : '' }}"
+                            class="{{ $sourceType === 'INHOUSE' ? 'bg-base-200 dark:bg-base-800' : 'bg-base-100 dark:bg-base-700' }} border-base-300 dark:border-base-600 h-12"
                         />
                         
-                        <x-input label="Tanggal Penerimaan" type="datetime-local" wire:model.blur="receivedAt" required />
+                        <x-input label="Tanggal Penerimaan" type="datetime-local" wire:model.blur="receivedAt" required class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
                     </div>
                     
-                    {{-- MODIFIKASI: Tambahkan pesan validasi khusus SUBCONT --}}
                     @if($sourceType === 'SUBCONT')
-                        <p class="text-xs text-orange-500 mt-1">Nomor penerimaan SUBCONT harus diisi minimal 10 karakter.</p>
+                        <p class="text-xs text-warning mt-1">Nomor penerimaan SUBCONT harus diisi minimal 10 karakter.</p>
                     @endif
                 </x-card>
 
-                {{-- Add Item (Tidak Berubah) --}}
-                <x-card title="Tambah Item" shadow separator class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-gray-100">
+                {{-- Add Item --}}
+                <x-card title="Tambah Item" shadow separator class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl">
                     <div class="grid grid-cols-12 gap-4 items-end">
-                        <div class="col-span-5 relative z-30">
+                        <div class="col-span-12 md:col-span-5 relative z-30">
                             <x-choices 
                                 label="Pilih Part"
                                 wire:model.live.debounce.300ms="partId"
@@ -649,119 +645,119 @@ new #[Layout('components.layouts.app')] #[Title('Penerimaan Part')] class extend
                                 searchable
                                 single
                                 min-chars="2"
+                                class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600"
                             />
                         </div>
-                        <div class="col-span-3">
-                            <x-input label="Jumlah" type="number" min="1" wire:model="quantity" />
+                        <div class="col-span-12 md:col-span-3">
+                            <x-input label="Jumlah" type="number" min="1" wire:model="quantity" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
                         </div>
-                        <div class="col-span-2">
-                            <x-button wire:click="addItem" icon="o-plus" class="btn-primary w-full" :disabled="!$partId" spinner="addItem">
+                        <div class="col-span-12 md:col-span-2">
+                            <x-button wire:click="addItem" icon="o-plus" class="btn-primary w-full h-12" :disabled="!$partId" spinner="addItem">
                                 Tambah
                             </x-button>
                         </div>
-                        <div class="col-span-2">
-                            <x-button wire:click="clearAllItems" icon="o-trash" class="btn-outline border-red-300 text-red-600 w-full" :disabled="!$this->hasItems()" wire:confirm="Yakin ingin menghapus semua item?">
+                        <div class="col-span-12 md:col-span-2">
+                            <x-button wire:click="clearAllItems" icon="o-trash" class="btn-outline border-error/30 text-error w-full h-12" :disabled="!$this->hasItems()" wire:confirm="Yakin ingin menghapus semua item?">
                                 Clear All
                             </x-button>
                         </div>
                     </div>
                 </x-card>
 
-                {{-- Items List (Tidak Berubah) --}}
-                <x-card title="Item yang akan diterima ({{ count($items) }} jenis)" shadow class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 text-gray-900 dark:text-gray-100">
+                {{-- Items List --}}
+                <x-card title="Item yang akan diterima ({{ count($items) }} jenis)" shadow class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl">
                     <div 
                         class="space-y-3 max-h-80 overflow-y-auto"
                         x-data="{}"
                         @item-added.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight; })"
                     >
                         @forelse($items as $index => $item)
-                            <div wire:key="item-{{ $index }}" class="relative flex justify-between items-center p-4 rounded-xl border border-gray-300 dark:border-white/10 bg-gray-100 dark:bg-white/5 backdrop-blur">
-                                <span class="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 via-indigo-400 to-purple-500"></span>
+                            <div wire:key="item-{{ $index }}" class="relative flex justify-between items-center p-4 rounded-xl border border-base-200 dark:border-base-700 bg-base-100 dark:bg-base-700">
+                                <span class="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-primary via-indigo-400 to-purple-500"></span>
                                 <div>
-                                    <span class="font-medium text-gray-900 dark:text-white">{{ $item['part_number'] }}</span>
-                                    <p class="text-sm text-gray-600 dark:text-gray-300">{{ $item['customer_code'] }} | {{ $item['model'] }} - {{ $item['variant'] }}</p>
+                                    <span class="font-medium text-base-content dark:text-base-100">{{ $item['part_number'] }}</span>
+                                    <p class="text-sm text-base-content/60 dark:text-base-400">{{ $item['customer_code'] }} | {{ $item['model'] }} - {{ $item['variant'] }}</p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    {{-- Optimasi: debounce --}}
-                                    <x-input type="number" min="1" wire:model.live.debounce.500ms="items.{{ $index }}.quantity" class="w-24 text-center" />
-                                    <x-button icon="o-trash" wire:click="removeItem({{ $index }})" class="btn-circle btn-ghost btn-sm text-red-500" wire:confirm="Yakin ingin menghapus item ini?"/>
+                                    <x-input type="number" min="1" wire:model.live.debounce.500ms="items.{{ $index }}.quantity" class="w-24 text-center bg-base-50 dark:bg-base-800 border-base-300 dark:border-base-600 h-10" />
+                                    <x-button icon="o-trash" wire:click="removeItem({{ $index }})" class="btn-circle btn-ghost btn-sm text-error h-10 w-10" wire:confirm="Yakin ingin menghapus item ini?"/>
                                 </div>
                             </div>
                         @empty
                             <div class="text-center py-12">
-                                <x-icon name="o-inbox" class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-300" />
-                                <p class="mt-4 text-gray-600 dark:text-gray-300">Belum ada item yang ditambahkan.</p>
+                                <x-icon name="o-inbox" class="w-12 h-12 mx-auto text-base-content/30" />
+                                <p class="mt-4 text-base-content/60 dark:text-base-400">Belum ada item yang ditambahkan.</p>
                             </div>
                         @endforelse
                     </div>
 
                     @if($this->hasItems())
                         <x-slot:actions>
-                            <div class="w-full text-right font-semibold text-gray-900 dark:text-white">
+                            <div class="w-full text-right font-semibold text-base-content dark:text-base-100">
                                 Total: {{ $this->totalItems() }} pcs
                             </div>
                         </x-slot:actions>
                     @endif
                 </x-card>
 
-                {{-- Submit Button (Tidak Berubah) --}}
+                {{-- Submit Button --}}
                 <div class="flex justify-end gap-2">
-                    <x-button label="Simpan sebagai Draft" wire:click="saveDraft" icon="o-document" class="btn-ghost" :disabled="!$this->hasItems()" spinner="saveDraft" />
-                    <x-button type="submit" label="Simpan & Selesaikan" icon="o-check" class="btn-primary px-8" :disabled="!$this->hasItems()" spinner="submit" />
+                    <x-button label="Simpan sebagai Draft" wire:click="saveDraft" icon="o-document" class="btn-ghost h-12" :disabled="!$this->hasItems()" spinner="saveDraft" />
+                    <x-button type="submit" label="Simpan & Selesaikan" icon="o-check" class="btn-primary px-8 h-12 min-h-12" :disabled="!$this->hasItems()" spinner="submit" />
                 </div>
             </form>
         </div>
     @endif
 
-    {{-- Confirmation Modal (Tidak Berubah) --}}
-    <x-modal wire:model="showConfirmationModal" title="Konfirmasi Penerimaan" persistent separator>
+    {{-- Confirmation Modal --}}
+    <x-modal wire:model="showConfirmationModal" title="Konfirmasi Penerimaan" persistent separator class="backdrop-blur-sm">
         <div class="space-y-4">
-            <p class="text-gray-800 dark:text-gray-200">Anda akan menyimpan data penerimaan berikut. Mohon periksa kembali sebelum melanjutkan:</p>
+            <p class="text-base-content/70 dark:text-base-400">Anda akan menyimpan data penerimaan berikut. Mohon periksa kembali sebelum melanjutkan:</p>
 
             <div class="rounded-lg">
-                <h4 class="font-bold text-lg mb-2 text-gray-900 dark:text-white">Ringkasan Penerimaan</h4>
-                <p class="text-gray-800 dark:text-gray-200"><strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($receivedAt)->format('d M Y H:i') }}</p>
-                <p class="text-gray-800 dark:text-gray-200"><strong>Total Jenis Item:</strong> {{ count($items) }}</p>
-                <p class="text-gray-800 dark:text-gray-200"><strong>Total Kuantitas:</strong> {{ $this->totalItems() }} pcs</p>
+                <h4 class="font-bold text-lg mb-2 text-base-content dark:text-base-100">Ringkasan Penerimaan</h4>
+                <p class="text-base-content/70 dark:text-base-400"><strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($receivedAt)->format('d M Y H:i') }}</p>
+                <p class="text-base-content/70 dark:text-base-400"><strong>Total Jenis Item:</strong> {{ count($items) }}</p>
+                <p class="text-base-content/70 dark:text-base-400"><strong>Total Kuantitas:</strong> {{ $this->totalItems() }} pcs</p>
             </div>
 
-            <div class="max-h-60 overflow-y-auto mt-4 border-t pt-4 border-gray-300 dark:border-gray-700">
-                <h4 class="font-bold text-lg mb-2 text-gray-900 dark:text-white">Detail Item</h4>
+            <div class="max-h-60 overflow-y-auto mt-4 border-t pt-4 border-base-200 dark:border-base-700">
+                <h4 class="font-bold text-lg mb-2 text-base-content dark:text-base-100">Detail Item</h4>
                 @foreach($items as $index => $item)
-                    <div class="flex justify-between items-center py-2 border-b last:border-b-0 border-gray-300 dark:border-gray-700">
+                    <div class="flex justify-between items-center py-2 border-b last:border-b-0 border-base-200 dark:border-base-700">
                         <div class="flex-1">
-                            <span class="font-medium text-gray-900 dark:text-white">{{ $item['part_number'] }}</span>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $item['customer_code'] }} | {{ $item['model'] }} - {{ $item['variant'] }}</p>
+                            <span class="font-medium text-base-content dark:text-base-100">{{ $item['part_number'] }}</span>
+                            <p class="text-sm text-base-content/60 dark:text-base-400">{{ $item['customer_code'] }} | {{ $item['model'] }} - {{ $item['variant'] }}</p>
                         </div>
-                        <div class="font-semibold text-gray-900 dark:text-white text-right">{{ $item['quantity'] }} pcs</div>
+                        <div class="font-semibold text-base-content dark:text-base-100 text-right">{{ $item['quantity'] }} pcs</div>
                     </div>
                 @endforeach
             </div>
         </div>
         <x-slot:actions>
-            <x-button label="Batal" class="btn-ghost" @click="$wire.set('showConfirmationModal', false)" />
-            <x-button label="Simpan & Lanjutkan" class="btn-primary" wire:click="saveCompleted" spinner="saveCompleted" />
+            <x-button label="Batal" class="btn-ghost h-12" @click="$wire.set('showConfirmationModal', false)" />
+            <x-button label="Simpan & Lanjutkan" class="btn-primary h-12 min-h-12" wire:click="saveCompleted" spinner="saveCompleted" />
         </x-slot:actions>
     </x-modal>
 
-    {{-- View Modal (Tidak Berubah) --}}
-    <x-modal wire:model="viewModal" title="Detail Penerimaan Part" class="max-w-3xl">
+    {{-- View Modal --}}
+    <x-modal wire:model="viewModal" title="Detail Penerimaan Part" class="max-w-3xl backdrop-blur-sm">
         <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4 bg-gray-100 dark:bg-base-200 p-4 rounded">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-base-50 dark:bg-base-800 p-4 rounded-xl border border-base-200 dark:border-base-700">
                 <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-500">Nomor Penerimaan</p>
-                    <p class="font-semibold text-gray-900 dark:text-gray-200">{{ $viewReceivingHeader['receiving_number'] ?? '-' }}</p>
+                    <p class="text-sm text-base-content/60 dark:text-base-400">Nomor Penerimaan</p>
+                    <p class="font-semibold text-base-content dark:text-base-100">{{ $viewReceivingHeader['receiving_number'] ?? '-' }}</p>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-500">Tanggal Terima</p>
-                    <p class="font-semibold text-gray-900 dark:text-gray-200">{{ $viewReceivingHeader['received_at'] ?? '-' }}</p>
+                    <p class="text-sm text-base-content/60 dark:text-base-400">Tanggal Terima</p>
+                    <p class="font-semibold text-base-content dark:text-base-100">{{ $viewReceivingHeader['received_at'] ?? '-' }}</p>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-500">Diterima Oleh</p>
-                    <p class="font-semibold text-gray-900 dark:text-gray-200">{{ $viewReceivingHeader['received_by'] ?? '-' }}</p>
+                    <p class="text-sm text-base-content/60 dark:text-base-400">Diterima Oleh</p>
+                    <p class="font-semibold text-base-content dark:text-base-100">{{ $viewReceivingHeader['received_by'] ?? '-' }}</p>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600 dark:text-gray-500">Status</p>
+                    <p class="text-sm text-base-content/60 dark:text-base-400">Status</p>
                     @if(isset($viewReceivingHeader['status']))
                         @if($viewReceivingHeader['status'] === 'draft')
                             <x-badge value="Draft" class="badge-warning" />
@@ -775,18 +771,18 @@ new #[Layout('components.layouts.app')] #[Title('Penerimaan Part')] class extend
             </div>
 
             <div>
-                <h4 class="font-semibold mb-2 text-gray-900 dark:text-white">Daftar Part</h4>
+                <h4 class="font-semibold mb-2 text-base-content dark:text-base-100">Daftar Part</h4>
                 <x-table :headers="[
                     ['key' => 'part_number', 'label' => 'Part Number'],
                     ['key' => 'customer_code', 'label' => 'Customer'],
                     ['key' => 'model', 'label' => 'Model'],
                     ['key' => 'variant', 'label' => 'Variant'],
                     ['key' => 'quantity', 'label' => 'Qty'],
-                ]" :rows="$viewReceivingItems" />
+                ]" :rows="$viewReceivingItems" class="border border-base-200 dark:border-base-700 rounded-lg overflow-hidden" />
             </div>
 
-            <div class="flex justify-end pt-4 border-t border-gray-300 dark:border-gray-700">
-                <x-button label="Tutup" @click="$wire.viewModal = false" />
+            <div class="flex justify-end pt-4 border-t border-base-200 dark:border-base-700">
+                <x-button label="Tutup" @click="$wire.viewModal = false" class="h-12" />
             </div>
         </div>
     </x-modal>

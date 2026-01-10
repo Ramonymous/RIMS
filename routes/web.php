@@ -96,7 +96,6 @@ Route::middleware('auth')->group(function () {
     Volt::route('/receivings', 'part-receiving')->name('part-receiving');
     Volt::route('/requests', 'part-request')->name('part-request');
     Volt::route('/request-list', 'request-list')->name('part-request-list');
-    Volt::route('/outgoings', 'part-outgoing')->name('part-outgoing');
     Volt::route('/stock-movements', 'stock-movements')->name('stock-movements');
     Volt::route('/telegram-settings', 'telegram-settings')->name('telegram-settings');
 

@@ -38,18 +38,24 @@ class extends Component {
     }
 }?>
 
-<div class="md:w-96 mx-auto mt-20">
-    <div class="mb-10">
-        <x-app-brand />
+<div class="flex justify-center items-center min-h-screen p-4">
+    <div class="w-full max-w-md p-4">
+        <div class="mb-10 text-center">
+            <x-app-brand />
+        </div>
+    
+        <x-card class="bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-2xl shadow-xl">
+            <x-form wire:submit="login">
+                <x-input placeholder="E-mail" wire:model="email" icon="o-envelope" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12" />
+                <x-input placeholder="Password" wire:model="password" type="password" icon="o-key" class="bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12 mt-4" />
+        
+                <x-slot:actions>
+                    <div class="flex justify-between items-center w-full">
+                        <x-button label="Create an account" class="btn-ghost btn-sm h-10" link="/register" />
+                        <x-button label="Login" type="submit" icon="o-paper-airplane" class="btn-primary h-12 min-h-12" spinner="login" />
+                    </div>
+                </x-slot:actions>
+            </x-form>
+        </x-card>
     </div>
- 
-    <x-form wire:submit="login">
-        <x-input placeholder="E-mail" wire:model="email" icon="o-envelope" />
-        <x-input placeholder="Password" wire:model="password" type="password" icon="o-key" />
- 
-        <x-slot:actions>
-            <x-button label="Create an account" class="btn-ghost" link="/register" />
-            <x-button label="Login" type="submit" icon="o-paper-airplane" class="btn-primary" spinner="login" />
-        </x-slot:actions>
-    </x-form>
 </div>

@@ -2,29 +2,25 @@
 
 use App\Models\Request;
 use App\Models\RequestList;
-use App\Models\Singlepart; // Added for stock check
-use App\Models\Outgoing;   // Added for processing
-use App\Models\Movement;   // Added for processing
+use App\Models\Singlepart;
+use App\Models\Outgoing;
+use App\Models\Movement;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;   // Added for transaction
-use Illuminate\Support\Facades\Auth; // Added for user id
-use Illuminate\Support\Facades\Cache; // Added for outgoing number generation
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
 
-new
-#[Layout('components.layouts.app')]
-#[Title('List Permintaan Part')]
-class extends Component {
+new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class extends Component {
     use Toast;
 
     public Collection $rows;
 
-    // server-side memory (per tab)
     public array $seenItemIds = [];
     public array $announcedDelayedItemIds = [];
 
@@ -32,11 +28,10 @@ class extends Component {
     public int $totalDelayed = 0;
     public ?string $oldestRequest = null;
 
-    // --- SUPPLY FEATURE STATE ---
     public bool $showSupplyModal = false;
     public ?int $supplyingItemId = null;
     public ?RequestList $supplyingItem = null;
-    public string $supplyStep = 'scan'; // 'scan' | 'quantity'
+    public string $supplyStep = 'scan';
     public string $supplyScannedCode = '';
     public int $supplyQtyInput = 0;
     public int $supplyMaxQty = 0;
@@ -52,12 +47,12 @@ class extends Component {
     public function refreshRows(): void
     {
         try {
-            $now = now(); // ✅ FIX: define once
+            $now = now();
 
             $items = RequestList::query()
                 ->select('id', 'request_id', 'part_id', 'quantity', 'is_urgent', 'status')
                 ->with([
-                    'part:id,part_number,part_name,address,stock', // Added stock
+                    'part:id,part_number,part_name,address,stock',
                     'request:id,destination,requested_at,status',
                 ])
                 ->where('status', 'pending')
@@ -72,11 +67,9 @@ class extends Component {
             $rows = [];
             $newAnnouncements = [];
             $delayedAnnouncements = [];
-
             $waitingCount = 0;
             $delayedCount = 0;
 
-            // 🔒 keep only visible item IDs (prevent memory leak)
             $currentItemIds = $items->pluck('id')->toArray();
             $this->seenItemIds = array_intersect($this->seenItemIds, $currentItemIds);
             $this->announcedDelayedItemIds = array_intersect(
@@ -93,29 +86,23 @@ class extends Component {
                 $isDelayed = $requestedAt->lt($now->copy()->subMinutes(15));
                 $isNew = !in_array($item->id, $this->seenItemIds);
 
-                // =========================
-                // 🔔 ANNOUNCEMENTS
-                // =========================
                 if ($isNew) {
                     $newAnnouncements[] = [
-                        'key'         => $item->id . '|' . $requestedAt->timestamp,
-                        'part_number'=> $item->part->part_number,
-                        'is_urgent'  => (bool) $item->is_urgent, // ✅ PENTING
+                        'key' => $item->id . '|' . $requestedAt->timestamp,
+                        'part_number' => $item->part->part_number,
+                        'is_urgent' => (bool) $item->is_urgent,
                     ];
                 }
 
                 if ($isDelayed && !in_array($item->id, $this->announcedDelayedItemIds)) {
                     $delayedAnnouncements[] = [
-                        'key'         => $item->id . '|' . $requestedAt->timestamp,
-                        'part_number'=> $item->part->part_number,
-                        'is_urgent'  => (bool) $item->is_urgent, // ✅ PENTING
+                        'key' => $item->id . '|' . $requestedAt->timestamp,
+                        'part_number' => $item->part->part_number,
+                        'is_urgent' => (bool) $item->is_urgent,
                     ];
                     $this->announcedDelayedItemIds[] = $item->id;
                 }
 
-                // =========================
-                // 🧠 URGENCY
-                // =========================
                 if ($isDelayed) {
                     $urgency = 'delayed';
                     $delayedCount++;
@@ -127,70 +114,43 @@ class extends Component {
                     $waitingCount++;
                 }
 
-                // =========================
-                // 📋 ROW DATA
-                // =========================
                 $rows[] = [
-                    'item_id'      => $item->id,
-                    'part_number'  => $item->part->part_number,
-                    'part_name'    => $item->part->part_name,
-                    'quantity'     => $item->quantity,
-                    'destination'  => $item->request->destination,
-                    'address'      => $item->part->address,
+                    'item_id' => $item->id,
+                    'part_number' => $item->part->part_number,
+                    'part_name' => $item->part->part_name,
+                    'quantity' => $item->quantity,
+                    'destination' => $item->request->destination,
+                    'address' => $item->part->address,
                     'requested_at' => $requestedAt,
-                    'is_urgent'    => (bool) $item->is_urgent,
-                    'urgency'      => $urgency,
-                    // Supply feature needs these
-                    'stock'        => $item->part->stock,
-                    'can_supply'   => auth()->user()->can('manage') || auth()->user()->can('outgoer'),
+                    'is_urgent' => (bool) $item->is_urgent,
+                    'urgency' => $urgency,
+                    'stock' => $item->part->stock,
+                    'can_supply' => auth()->user()->can('manage') || auth()->user()->can('outgoer'),
                 ];
             }
 
-            // =========================
-            // 🧠 UPDATE MEMORY
-            // =========================
             $this->seenItemIds = array_unique(array_merge(
                 $this->seenItemIds,
                 $items->pluck('id')->toArray()
             ));
 
-            // =========================
-            // 📊 STATS
-            // =========================
             $this->rows = collect($rows);
             $this->totalWaiting = $waitingCount;
             $this->totalDelayed = $delayedCount;
 
-            $oldestRequestedAt = $items
-                ->pluck('request.requested_at')
-                ->filter()
-                ->sort()
-                ->first();
-
+            $oldestRequestedAt = $items->pluck('request.requested_at')->filter()->sort()->first();
             $this->oldestRequest = $oldestRequestedAt?->diffForHumans();
 
-            // =========================
-            // 🔔 DISPATCH EVENTS
-            // =========================
             if ($newAnnouncements) {
                 $this->dispatch('announce-new-parts', announcements: $newAnnouncements);
             }
-
             if ($delayedAnnouncements) {
                 $this->dispatch('announce-delayed-parts', announcements: $delayedAnnouncements);
             }
-
         } catch (\Throwable $e) {
-            Log::error('refreshRows error', [
-                'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-            ]);
+            Log::error('refreshRows error', ['message' => $e->getMessage()]);
         }
     }
-
-    // ==========================================
-    // 🚀 SUPPLY FEATURE METHODS
-    // ==========================================
 
     public function openSupplyModal(int $itemId): void
     {
@@ -207,15 +167,13 @@ class extends Component {
         $this->supplyQtyInput = 0;
         $this->supplyError = '';
         $this->showSupplyModal = true;
-        
-        // Dispatch event to start scanner
+
         $this->dispatch('supply-scanner-start');
     }
 
     #[On('supply-scan-success')]
     public function handleSupplyScan(string $code): void
     {
-        // Only process if modal is open and in scan step
         if (!$this->showSupplyModal || $this->supplyStep !== 'scan') {
             return;
         }
@@ -224,31 +182,24 @@ class extends Component {
         $targetPartNumber = $this->supplyingItem->part->part_number;
 
         if (strcasecmp($code, $targetPartNumber) === 0) {
-            // Valid Scan
             $this->supplyScannedCode = $code;
             $this->supplyStep = 'quantity';
-            
-            // Set max quantity (stock only, ignore request quantity limit)
+
             $stock = $this->supplyingItem->part->stock;
             $requested = $this->supplyingItem->quantity;
-            
-            // UPDATE: Supply max quantity hanya dibatasi oleh stock
-            $this->supplyMaxQty = $stock; 
-            
-            // Default input to requested qty (or stock if stock is lower)
-            $this->supplyQtyInput = ($stock > 0) ? min($stock, $requested) : 0;
-            
+            $this->supplyMaxQty = $stock;
+            $this->supplyQtyInput = $stock > 0 ? min($stock, $requested) : 0;
             $this->supplyError = '';
-            
+
             if ($this->supplyMaxQty <= 0) {
-                $this->supplyError = "Stok kosong atau habis (Stok: $stock).";
+                $this->supplyError = "Stok kosong (Stok: $stock).";
+            } else {
+                $this->success('Part Valid!');
             }
 
-            $this->success('Part terverifikasi!');
+            $this->dispatch('supply-scanner-stop');
         } else {
-            // Invalid Scan
-            $this->supplyError = "Part salah! Discan: $code, Diminta: $targetPartNumber";
-            // Optional: Play error sound or shake UI
+            $this->supplyError = "Part salah! Scan: $code";
         }
     }
 
@@ -263,34 +214,31 @@ class extends Component {
 
     public function processSupply(): void
     {
-        // Validation keeps checking against stock to prevent negative inventory
         $this->validate([
-            'supplyQtyInput' => 'required|integer|min:1|max:' . ($this->supplyingItem->part->stock ?? 0)
+            'supplyQtyInput' => 'required|integer|min:1|max:' . ($this->supplyingItem->part->stock ?? 0),
         ]);
 
-        if (!$this->supplyingItem) return;
+        if (!$this->supplyingItem) {
+            return;
+        }
 
         DB::beginTransaction();
         try {
-            // 1. Lock Part & Re-check Stock
             $part = Singlepart::lockForUpdate()->find($this->supplyingItem->part_id);
             if (!$part || $part->stock < $this->supplyQtyInput) {
-                throw new \Exception("Stok tidak mencukupi saat proses akhir.");
+                throw new \Exception('Stok tidak mencukupi.');
             }
 
-            // 2. Generate Outgoing Number (Local logic reused from outgoing module)
             $outgoingNumber = $this->generateOutgoingNumber();
 
-            // 3. Create Outgoing Record
             Outgoing::create([
                 'outgoing_number' => $outgoingNumber,
-                'part_id'         => $part->id,
-                'quantity'        => $this->supplyQtyInput,
-                'dispatched_by'   => Auth::id(),
-                'dispatched_at'   => now(),
+                'part_id' => $part->id,
+                'quantity' => $this->supplyQtyInput,
+                'dispatched_by' => Auth::id(),
+                'dispatched_at' => now(),
             ]);
 
-            // 4. Create Movement & Update Stock
             $oldStock = $part->stock;
             $part->decrement('stock', $this->supplyQtyInput);
 
@@ -302,62 +250,47 @@ class extends Component {
                 'final_qty' => $oldStock - $this->supplyQtyInput,
             ]);
 
-            // 5. Update RequestList Status
             $reqList = RequestList::lockForUpdate()->find($this->supplyingItem->id);
-            // Logic: if supply >= requested OR current logic implies 'done'
-            // For now, let's assume one-time supply closes the item line if matches quantity
-            // Or partial logic:
-            
-            // Note: Since the table doesn't have 'supplied_qty' column explicitly in the provided context,
-            // we assume simplistic status update. If supplied >= requested, fulfilled.
             if ($this->supplyQtyInput >= $reqList->quantity) {
                 $reqList->update(['status' => 'fulfilled']);
-            } 
-            // If partial support is needed in DB schema (e.g. supplied_quantity column), add it here.
-            // For now, adhering to strict "don't break existing", we just set fulfilled if qty matches.
-            // If partial, it might remain pending or strict logic. 
-            // Let's assume strict fulfillment for the requested amount in this context 
-            // OR if partial is allowed, we might need to split the request? 
-            // To be safe and simple: Update status based on logic.
-            
-            // 6. Update Parent Request Status
+            }
+
             $this->updateRequestStatus($reqList->request_id);
 
             DB::commit();
 
-            $this->success("Supply berhasil! $outgoingNumber diterbitkan.");
-            $this->showSupplyModal = false;
-            $this->refreshRows(); // Refresh UI
-
+            $this->success("Supply berhasil! $outgoingNumber");
+            $this->closeSupplyModal();
+            $this->refreshRows();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Gagal memproses: " . $e->getMessage());
+            $this->error('Gagal: ' . $e->getMessage());
         }
     }
 
-    // Helper reused from PartOutgoing logic
     protected function generateOutgoingNumber(): string
     {
         $date = now()->format('Ymd');
         $cacheKey = "outgoing_last_number_{$date}";
-        
-        $lastNumber = Cache::remember($cacheKey, 60, function() use ($date) {
+
+        $lastNumber = Cache::remember($cacheKey, 60, function () use ($date) {
             $last = Outgoing::where('outgoing_number', 'LIKE', "OUT-{$date}-%")
                 ->orderByDesc('outgoing_number')
                 ->value('outgoing_number');
             return $last ? (int) substr($last, -4) : 0;
         });
-        
+
         $newNumber = $lastNumber + 1;
         Cache::put($cacheKey, $newNumber, 60);
-        
         return sprintf('OUT-%s-%04d', $date, $newNumber);
     }
 
     protected function updateRequestStatus(int $requestId): void
     {
         $request = Request::with('items')->find($requestId);
-        if (!$request) return;
+        if (!$request) {
+            return;
+        }
 
         $allFulfilled = $request->items->every(fn($item) => $item->status === 'fulfilled');
         $anyFulfilled = $request->items->contains(fn($item) => $item->status === 'fulfilled');
@@ -368,7 +301,7 @@ class extends Component {
             $request->update(['status' => 'partial']);
         }
     }
-    
+
     public function closeSupplyModal(): void
     {
         $this->showSupplyModal = false;
@@ -377,246 +310,324 @@ class extends Component {
 };
 ?>
 
-<div wire:poll.5s="refreshRows" class="min-h-screen text-gray-900 dark:text-gray-100/90">
-    <style>
-        @keyframes scan-vertical {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-        .animate-scan {
-            animation: scan-vertical 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-    </style>
-
-<x-header title="Permintaan Part Real-time"
-          subtitle="Monitor permintaan part dari lini produksi secara langsung."
-          separator
-          progress-indicator />
-
-<div class="max-w-6xl mx-auto space-y-6">
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    <x-stat
-        class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl"
-        title="Item Menunggu"
-        :value="$totalWaiting"
-        icon="o-clock"
-        description="Total item yang belum terpenuhi" />
-    <x-stat
-        class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl"
-        title="Permintaan Terlambat"
-        :value="$totalDelayed"
-        icon="o-exclamation-triangle"
-        description="Menunggu lebih dari 15 menit" />
-    <x-stat
-        class="bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl"
-        title="Permintaan Tertua"
-        :value="$oldestRequest ?? '-'"
-        icon="o-calendar-days"
-        description="Waktu permintaan paling lama" />
-    </div>
-
-    <div class="space-y-3">
-    @forelse($rows as $row)
-    @php
-        $urgencyClasses = match($row['urgency']) {
-            'new' => 'border-l-4 border-l-sky-400/80 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5',
-            'delayed' => 'border-l-4 border-l-rose-400/80 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 animate-pulse',
-            default => 'border-l-4 border-l-amber-300/80 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5',
-        };
-    @endphp
-    <div
-        wire:key="item-{{ $row['item_id'] }}"
-        class="card card-side shadow-lg border border-gray-300 dark:border-white/10 rounded-2xl backdrop-blur-xl text-gray-900 dark:text-gray-100 {{ $urgencyClasses }} transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl group"
-    >
-        <div class="card-body p-5 flex-col sm:flex-row justify-between items-center gap-6">
-            <div class="flex-1 w-full sm:w-auto">
-                <div class="flex items-center gap-3">
-                    <h2 class="card-title text-xl font-bold text-gray-900 dark:text-white">{{ $row['part_number'] }}</h2>
-                    @if($row['is_urgent'] ?? false)
-                        <x-badge value="URGENT" class="badge-error badge-sm animate-pulse" />
-                    @endif
-                </div>
-                <p class="text-sm text-gray-700 dark:text-gray-300">{{ $row['part_name'] }}</p>
-                <div class="text-xs text-gray-600 dark:text-gray-400 mt-2 flex items-center gap-2">
-                    <x-icon name="o-calendar" class="w-4 h-4 inline-block text-indigo-600 dark:text-indigo-200" />
-                    <span>{{ $row['requested_at']->diffForHumans() }} ({{ $row['requested_at']->format('H:i') }})</span>
-                </div>
-                @if(!empty($row['address']))
-                    <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-2">
-                        <x-icon name="o-map-pin" class="w-4 h-4 inline-block text-amber-600 dark:text-amber-200" />
-                        <span class="line-clamp-1">{{ $row['address'] }}</span>
-                    </div>
-                @endif
+<div wire:poll.5s="refreshRows" class="min-h-screen bg-base-100 dark:bg-base-900 text-base-content pb-20 sm:pb-4">
+    <x-header title="Permintaan Part" separator progress-indicator class="sticky top-0 z-30 bg-base-100/90 dark:bg-base-900/90 backdrop-blur-sm border-b border-base-200 dark:border-base-800">
+        <x-slot:subtitle>
+            <div class="flex items-center gap-2 text-xs sm:text-sm">
+                <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span> Real-time Monitoring
             </div>
-            
-            <div class="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
-                <div class="text-center min-w-[60px]">
-                    <div class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-200">{{ (int)$row['quantity'] }}</div>
-                    <div class="text-xs text-gray-700 dark:text-gray-300">KBN</div>
-                </div>
+        </x-slot:subtitle>
+        <x-slot:actions>
+            <x-button 
+                icon="o-arrow-path" 
+                @click="$wire.refreshRows()" 
+                spinner="refreshRows" 
+                class="btn-sm btn-ghost touch-manipulation h-10" 
+                tooltip-bottom="Refresh"
+            />
+        </x-slot:actions>
+    </x-header>
+
+    <div class="max-w-6xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-4 safe-bottom">
+        <!-- Stats Cards - Horizontal Scroll for Mobile -->
+        <div class="flex overflow-x-auto gap-3 pb-2 no-scrollbar snap-x">
+            @foreach([
+                ['title' => 'Menunggu', 'value' => $totalWaiting, 'icon' => 'o-clock', 'color' => 'text-warning dark:text-warning/80'],
+                ['title' => 'Terlambat', 'value' => $totalDelayed, 'icon' => 'o-exclamation-triangle', 'color' => 'text-error dark:text-error/80'],
+                ['title' => 'Antrian Lama', 'value' => $oldestRequest ?? '-', 'icon' => 'o-calendar-days'],
+            ] as $stat)
+            <div class="snap-center shrink-0 w-[85%] sm:w-auto sm:flex-1">
+                <x-stat 
+                    :title="$stat['title']"
+                    :value="$stat['value']"
+                    :icon="$stat['icon']"
+                    :color="$stat['color'] ?? ''"
+                    class="bg-base-50 dark:bg-base-800/50 backdrop-blur border border-base-200 dark:border-base-700 rounded-2xl shadow-sm h-full"
+                />
+            </div>
+            @endforeach
+        </div>
+
+        <!-- Request List -->
+        <div class="space-y-2 sm:space-y-3">
+            @forelse($rows as $row)
+            @php
+                $isUrgent = $row['is_urgent'];
+                $urgencyType = $row['urgency'];
                 
-                <div class="text-right flex flex-col items-end gap-2">
-                    <div class="font-semibold text-gray-900 dark:text-white">{{ $row['destination'] }}</div>
-                    
-                    <div class="flex items-center gap-2">
-                        @if($row['can_supply'])
-                            <x-button 
-                                label="SUPPLY" 
-                                icon="o-qr-code" 
-                                class="btn-primary btn-sm shadow-md" 
-                                wire:click="openSupplyModal({{ $row['item_id'] }})"
-                            />
-                        @endif
-                        
-                        @if($row['urgency'] == 'delayed')
-                            <x-badge value="TERLAMBAT" class="badge-error badge-outline" />
-                        @elseif($row['urgency'] == 'new')
-                            <x-badge value="BARU" class="badge-info badge-outline" />
-                        @endif
+                $borderColor = match($urgencyType) {
+                    'new' => 'border-l-primary',
+                    'delayed' => 'border-l-error',
+                    default => 'border-l-warning',
+                };
+                
+                $bgColor = $urgencyType === 'delayed' 
+                    ? 'bg-gradient-to-r from-error/10 to-transparent dark:from-error/20' 
+                    : 'bg-gradient-to-r from-base-50 to-transparent dark:from-base-800/50';
+            @endphp
+
+            <div 
+                wire:key="item-{{ $row['item_id'] }}"
+                class="group relative rounded-r-xl overflow-hidden border-l-[6px] {{ $borderColor }} {{ $bgColor }} border-y border-r border-base-200 dark:border-base-700 shadow-sm hover:shadow-md transition-all duration-300 touch-manipulation active:scale-[0.98]"
+            >
+                <div class="p-4">
+                    <div class="flex flex-col gap-3">
+                        <!-- Header Row -->
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h2 class="text-lg font-bold font-mono truncate text-base-content dark:text-base-100">
+                                        {{ $row['part_number'] }}
+                                    </h2>
+                                    @if($isUrgent)
+                                    <x-badge value="URGENT" class="badge-error badge-sm animate-pulse" />
+                                    @endif
+                                </div>
+                                <p class="text-sm text-base-content/70 dark:text-base-400 truncate">
+                                    {{ $row['part_name'] }}
+                                </p>
+                            </div>
+                            
+                            <div class="flex flex-col items-end gap-1">
+                                <x-badge :value="$row['destination']" class="badge-outline badge-sm" />
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-xl font-bold text-primary dark:text-primary/80">{{ (int)$row['quantity'] }}</span>
+                                    <span class="text-xs font-medium opacity-50">Pcs</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Row -->
+                        <div class="flex items-center justify-between text-xs text-base-content/60 dark:text-base-500">
+                            <div class="flex items-center gap-3">
+                                <span class="flex items-center gap-1">
+                                    <x-icon name="o-clock" class="w-3.5 h-3.5" />
+                                    {{ $row['requested_at']->format('H:i') }}
+                                </span>
+                                @if(!empty($row['address']))
+                                <span class="flex items-center gap-1">
+                                    <x-icon name="o-map-pin" class="w-3.5 h-3.5" />
+                                    <span class="truncate max-w-[120px]">{{ $row['address'] }}</span>
+                                </span>
+                                @endif
+                            </div>
+                            
+                            <div class="flex items-center gap-2">
+                                <span class="flex items-center gap-1">
+                                    <x-icon name="o-archive-box" class="w-3.5 h-3.5" />
+                                    {{ $row['stock'] }}
+                                </span>
+                                
+                                @if($row['can_supply'])
+                                <x-button 
+                                    wire:click="openSupplyModal({{ $row['item_id'] }})"
+                                    icon="o-qr-code"
+                                    label="Supply"
+                                    class="btn-primary btn-sm shadow-lg shadow-primary/20 h-9 touch-manipulation"
+                                    spinner="openSupplyModal"
+                                />
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            @empty
+            <x-card class="text-center py-12 border-dashed border-base-200 dark:border-base-700">
+                <div class="flex flex-col items-center gap-4">
+                    <x-icon name="o-check-circle" class="w-16 h-16 text-success" />
+                    <div>
+                        <h3 class="font-bold text-lg text-base-content dark:text-base-100">Semua Aman!</h3>
+                        <p class="text-sm text-base-content/60 dark:text-base-400">Tidak ada permintaan part saat ini.</p>
+                    </div>
+                </div>
+            </x-card>
+            @endforelse
         </div>
     </div>
-@empty
-    <div class="text-center py-16 text-gray-600 dark:text-gray-300 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:bg-white/5 backdrop-blur-xl border border-gray-300 dark:border-white/10 rounded-2xl">
-        <x-icon name="o-check-circle" class="w-16 h-16 mx-auto mb-4 text-emerald-600 dark:text-emerald-300" />
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Semua Permintaan Terpenuhi</h3>
-        <p class="text-gray-600 dark:text-gray-400">Tidak ada item yang sedang menunggu saat ini.</p>
-    </div>
-    @endforelse
-    </div>
 
-</div>
-
-    <!-- SUPPLY MODAL -->
-    <x-modal wire:model="showSupplyModal" title="Supply Part" persistent separator class="backdrop-blur-sm">
+    <!-- Supply Modal -->
+    <x-modal 
+        wire:model="showSupplyModal" 
+        title="Supply Part" 
+        separator 
+        class="backdrop-blur-sm"
+        persistent
+        :close-by-escape="false"
+        :close-by-clicking-away="false"
+    >
         @if($supplyingItem)
-            <div class="mb-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
-                <div class="flex justify-between items-start">
+            <!-- Header Info -->
+            <div class="mb-6 p-4 bg-base-100 dark:bg-base-800 rounded-xl border border-base-200 dark:border-base-700">
+                <div class="flex justify-between items-center">
                     <div>
-                        <div class="text-xs text-gray-500 uppercase font-bold">Part Number</div>
-                        <div class="text-lg font-bold text-primary">{{ $supplyingItem->part->part_number }}</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">{{ $supplyingItem->part->part_name }}</div>
+                        <div class="text-xs text-base-content/50 dark:text-base-500 uppercase font-semibold tracking-wider">Target Part</div>
+                        <div class="text-2xl font-black font-mono text-primary dark:text-primary/80 mt-1">{{ $supplyingItem->part->part_number }}</div>
                     </div>
                     <div class="text-right">
-                         <div class="text-xs text-gray-500 uppercase font-bold">Permintaan</div>
-                         <div class="text-lg font-bold">{{ $supplyingItem->quantity }} <span class="text-xs font-normal">KBN</span></div>
+                        <div class="text-xs text-base-content/50 dark:text-base-500 uppercase font-semibold tracking-wider">Quantity</div>
+                        <div class="text-2xl font-black mt-1 text-base-content dark:text-base-100">{{ $supplyingItem->quantity }}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- STEP 1: SCANNER -->
-            <div x-show="$wire.supplyStep === 'scan'" class="space-y-4">
-                <div wire:ignore x-data="supplyScanner()" x-init="init()" 
-                     @supply-scanner-start.window="start()"
-                     @supply-scanner-stop.window="stop()"
-                     x-ref="scannerContainer"
-                     tabindex="0" 
-                     class="relative overflow-hidden rounded-3xl bg-black aspect-square max-h-[320px] mx-auto shadow-2xl ring-1 ring-white/10 flex items-center justify-center focus:outline-none select-none">
-                    
-                    <!-- Video Feed -->
-                    <video id="supply-qr-video" class="absolute inset-0 w-full h-full object-cover opacity-90"></video>
-                    <canvas id="supply-qr-canvas" class="hidden"></canvas>
-                    
-                    <!-- Loading State -->
-                    <div x-show="!isScanning" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 text-center z-10">
-                        <div class="loading loading-spinner loading-lg text-primary mb-3"></div>
-                        <p class="text-xs font-medium uppercase tracking-wider animate-pulse text-gray-400">Inisialisasi Kamera...</p>
+            <!-- Step Content -->
+            <div class="relative min-h-[400px] overflow-hidden">
+                <!-- Scan Step -->
+                <div 
+                    x-show="$wire.supplyStep === 'scan'" 
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 -translate-x-10"
+                    x-transition:enter-end="opacity-100 translate-x-0"
+                    x-transition:leave="transition ease-in duration-300"
+                    x-transition:leave-start="opacity-100 translate-x-0"
+                    x-transition:leave-end="opacity-0 -translate-x-10"
+                    class="space-y-4 absolute inset-0"
+                >
+                    <!-- Scanner Area -->
+                    <div 
+                        wire:ignore 
+                        x-data="supplyScanner()" 
+                        x-init="init()"
+                        @supply-scanner-start.window="start()"
+                        @supply-scanner-stop.window="stop()"
+                        x-ref="scannerContainer"
+                        class="relative overflow-hidden rounded-2xl bg-base-900 dark:bg-base-950 aspect-square max-h-[280px] mx-auto shadow-2xl ring-1 ring-base-300 dark:ring-base-700"
+                    >
+                        <video id="supply-qr-video" class="absolute inset-0 w-full h-full object-cover opacity-90"></video>
+                        <canvas id="supply-qr-canvas" class="hidden"></canvas>
+                        
+                        <!-- Loading State -->
+                        <div x-show="!isScanning" class="absolute inset-0 flex flex-col items-center justify-center bg-base-900/90 text-base-100 z-10">
+                            <x-icon name="o-camera" class="w-12 h-12 text-primary mb-2" />
+                            <span class="text-sm">Menyiapkan kamera...</span>
+                        </div>
+                        
+                        <!-- Scanning Overlay -->
+                        <div x-show="isScanning" class="absolute inset-0 z-20 pointer-events-none">
+                            <div class="absolute inset-0 bg-black/30"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="relative w-[70%] h-[70%] border-2 border-primary/50 rounded-xl overflow-hidden shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
+                                    <div class="absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_15px_currentColor] animate-scan"></div>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-4 inset-x-0 text-center">
+                                <x-badge value="Scanning..." class="bg-base-900/60 text-base-100 border-base-300/20" />
+                            </div>
+                        </div>
                     </div>
-                    
-                    <!-- Professional Scanner Overlay -->
-                    <div x-show="isScanning" class="absolute inset-0 z-20 pointer-events-none">
-                         <!-- Dark Overlay Outside Viewfinder -->
-                         <div class="absolute inset-0 bg-black/40"></div>
-                         
-                         <!-- Active Viewfinder Box -->
-                         <div class="absolute inset-0 flex items-center justify-center">
-                             <div class="relative w-[70%] h-[70%] border border-white/20 rounded-xl overflow-hidden backdrop-blur-[1px] shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                                  
-                                  <!-- Corner Markers -->
-                                  <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg shadow-sm"></div>
-                                  <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg shadow-sm"></div>
-                                  <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg shadow-sm"></div>
-                                  <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg shadow-sm"></div>
-                                  
-                                  <!-- Laser Scan Animation -->
-                                  <div class="absolute left-0 right-0 h-0.5 bg-primary/80 shadow-[0_0_15px_rgba(var(--primary-rgb),1)] animate-scan"></div>
-                             </div>
-                         </div>
-                         
-                         <!-- Status Text Overlay -->
-                         <div class="absolute bottom-6 left-0 right-0 flex justify-center">
-                              <div class="px-4 py-1.5 rounded-full bg-black/60 border border-white/10 backdrop-blur-md flex items-center gap-2">
-                                  <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                                  <span class="text-white text-[10px] font-bold uppercase tracking-wider">Mencari QR Code</span>
-                              </div>
-                         </div>
+
+                    <!-- Error Message -->
+                    @if($supplyError)
+                    <x-alert icon="o-exclamation-triangle" :description="$supplyError" class="bg-error/10 border-error/20 text-error" />
+                    @endif
+
+                    <!-- Manual Input -->
+                    <div class="space-y-2">
+                        <x-input 
+                            placeholder="Atau input manual part number..." 
+                            wire:model="supplyScannedCode" 
+                            class="w-full bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12"
+                            icon="o-pencil-square"
+                        />
+                        <x-button 
+                            icon="o-check" 
+                            label="Verifikasi" 
+                            wire:click="checkManualSupply" 
+                            class="btn-primary w-full h-12 min-h-12 touch-manipulation"
+                            spinner="checkManualSupply"
+                        />
                     </div>
                 </div>
 
-                <div class="text-center text-sm text-gray-500">
-                    Arahkan kamera ke label part <b>{{ $supplyingItem->part->part_number }}</b>
-                </div>
-
-                @if($supplyError)
-                    <div class="p-3 rounded-lg bg-red-100 text-red-700 text-sm font-semibold flex items-center gap-2 animate-bounce border border-red-200 shadow-sm">
-                        <x-icon name="o-exclamation-circle" class="w-5 h-5 shrink-0" />
-                        <span>{{ $supplyError }}</span>
+                <!-- Quantity Step -->
+                <div 
+                    x-show="$wire.supplyStep === 'quantity'" 
+                    x-transition:enter="transition ease-out duration-300 delay-150"
+                    x-transition:enter-start="opacity-0 translate-x-10"
+                    x-transition:enter-end="opacity-100 translate-x-0"
+                    class="space-y-6 absolute inset-0 flex flex-col justify-center"
+                >
+                    <!-- Success Indicator -->
+                    <div class="text-center">
+                        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-success/10 text-success dark:text-success/80 mb-4 shadow-lg ring-4 ring-success/10 dark:ring-success/5">
+                            <x-icon name="o-check" class="w-10 h-10" />
+                        </div>
+                        <h3 class="text-xl font-bold text-base-content dark:text-base-100">Terverifikasi!</h3>
+                        <p class="text-sm text-base-content/60 dark:text-base-400">Masukkan jumlah supply</p>
                     </div>
-                @endif
-                
-                <div class="divider text-xs font-medium text-gray-400">OPSI LAIN</div>
-                
-                <div class="flex gap-2 relative">
-                     <!-- Dummy focusable element to prevent keyboard auto-popup -->
-                     <div tabindex="-1" class="absolute w-0 h-0 overflow-hidden"></div>
-                     
-                     <x-input placeholder="Input Manual Part Number..." wire:model="supplyScannedCode" class="w-full" />
-                     <x-button label="Verifikasi" wire:click="checkManualSupply" class="btn-primary" spinner />
-                </div>
-            </div>
 
-            <!-- STEP 2: QUANTITY -->
-            <div x-show="$wire.supplyStep === 'quantity'" class="space-y-6">
-                <div class="text-center py-4">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-3 shadow-inner ring-4 ring-green-50">
-                        <x-icon name="o-check" class="w-8 h-8" />
+                    <!-- Stock Info -->
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <x-stat 
+                            title="Stok Tersedia"
+                            :value="$supplyingItem->part->stock"
+                            class="bg-base-100 dark:bg-base-700 rounded-lg p-3"
+                        />
+                        <x-stat 
+                            title="Diminta"
+                            :value="$supplyingItem->quantity"
+                            class="bg-base-100 dark:bg-base-700 rounded-lg p-3"
+                        />
+                        <x-stat 
+                            title="Maksimal"
+                            :value="$supplyMaxQty"
+                            class="bg-base-100 dark:bg-base-700 rounded-lg p-3"
+                        />
                     </div>
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Part Terverifikasi!</h3>
-                    <p class="text-sm text-gray-500">Silakan masukkan jumlah yang akan disupply.</p>
-                </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-center">
-                        <div class="text-[10px] text-blue-600 dark:text-blue-300 font-bold uppercase tracking-wide mb-1">Stok Tersedia</div>
-                        <div class="text-2xl font-black text-blue-800 dark:text-blue-100">{{ $supplyingItem->part->stock }}</div>
-                    </div>
-                    <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-center">
-                        <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">Maksimal Supply</div>
-                        <div class="text-2xl font-black text-gray-800 dark:text-gray-200">{{ $supplyMaxQty }}</div>
+                    <!-- Quantity Input -->
+                    <div class="space-y-2">
+                        <x-input 
+                            label="Jumlah Supply" 
+                            type="number" 
+                            wire:model="supplyQtyInput" 
+                            min="1" 
+                            :max="$supplyMaxQty" 
+                            class="text-center font-bold text-2xl h-14 bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600" 
+                            autofocus 
+                            :hint="$supplyMaxQty == 0 ? 'Stok kosong' : 'Masukkan jumlah antara 1 dan ' . $supplyMaxQty"
+                            :error="$supplyMaxQty == 0"
+                        />
+                        
+                        <!-- Quick Select Buttons -->
+                        @if($supplyMaxQty > 0)
+                        <div class="flex gap-2">
+                            @foreach([$supplyingItem->quantity, min($supplyMaxQty, $supplyingItem->quantity), $supplyMaxQty] as $quickQty)
+                            <x-button 
+                                :label="$quickQty"
+                                wire:click="$set('supplyQtyInput', {{ $quickQty }})"
+                                class="btn-outline btn-sm flex-1 h-10 touch-manipulation"
+                                :disabled="$quickQty > $supplyMaxQty"
+                            />
+                            @endforeach
+                        </div>
+                        @endif
                     </div>
                 </div>
-
-                <x-input label="Quantity Supply" type="number" wire:model="supplyQtyInput" min="1" :max="$supplyMaxQty" class="input-lg text-center font-black text-2xl" />
-                
-                @if($supplyMaxQty == 0)
-                     <div class="text-error text-sm text-center font-medium bg-red-50 p-2 rounded-lg">Stok habis, tidak dapat melakukan supply.</div>
-                @endif
             </div>
         @endif
         
         <x-slot:actions>
-            <x-button label="Batal" wire:click="closeSupplyModal" class="btn-ghost" />
-            @if($supplyStep === 'quantity')
-                <x-button label="Proses Supply" wire:click="processSupply" class="btn-primary" icon="o-paper-airplane" spinner="processSupply" :disabled="$supplyMaxQty == 0" />
-            @endif
+            <div class="flex gap-2 w-full sm:w-auto">
+                <x-button 
+                    label="Kembali" 
+                    wire:click="closeSupplyModal" 
+                    class="btn-ghost flex-1 h-12"
+                    :disabled="$supplyStep === 'quantity'"
+                />
+                @if($supplyStep === 'quantity' && $supplyMaxQty > 0)
+                <x-button 
+                    label="Kirim Supply" 
+                    wire:click="processSupply" 
+                    class="btn-primary flex-1 h-12 min-h-12 touch-manipulation"
+                    icon="o-paper-airplane" 
+                    spinner="processSupply"
+                />
+                @endif
+            </div>
         </x-slot:actions>
     </x-modal>
-
 </div>
 
 @push('scripts')

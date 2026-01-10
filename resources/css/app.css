@@ -40,3 +40,18 @@
 .mary-table-pagination button {
     @apply cursor-pointer
 }
+
+@keyframes scan-vertical {
+    0% { top: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+.animate-scan {
+    animation: scan-vertical 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.touch-manipulation { touch-action: manipulation; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.touch-manipulation { touch-action: manipulation; }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 1rem); }
