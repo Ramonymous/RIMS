@@ -36,12 +36,19 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
     public int $supplyQtyInput = 0;
     public int $supplyMaxQty = 0;
     public string $supplyError = '';
+    public bool $showManualInput = false;
 
     public function mount(): void
     {
         $this->rows = collect();
         $this->refreshRows();
     }
+    
+    public function enableManualInput()
+    {
+        $this->showManualInput = true;
+    }
+
 
     #[On('refreshRows')]
     public function refreshRows(): void
@@ -386,15 +393,7 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
                                 <p class="text-sm text-base-content/70 dark:text-base-400 truncate">
                                     {{ $row['part_name'] }}
                                 </p>
-                            </div>
-                            
-                            <div class="flex flex-col items-end gap-1">
-                                <x-badge :value="$row['destination']" class="badge-outline badge-sm" />
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-xl font-bold text-primary dark:text-primary/80">{{ (int)$row['quantity'] }}</span>
-                                    <span class="text-xs font-medium opacity-50">Pcs</span>
-                                </div>
-                            </div>
+                            </div>                            
                         </div>
 
                         <!-- Info Row -->
@@ -464,10 +463,6 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
                         <div class="text-xs text-base-content/50 dark:text-base-500 uppercase font-semibold tracking-wider">Target Part</div>
                         <div class="text-2xl font-black font-mono text-primary dark:text-primary/80 mt-1">{{ $supplyingItem->part->part_number }}</div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-xs text-base-content/50 dark:text-base-500 uppercase font-semibold tracking-wider">Quantity</div>
-                        <div class="text-2xl font-black mt-1 text-base-content dark:text-base-100">{{ $supplyingItem->quantity }}</div>
-                    </div>
                 </div>
             </div>
 
@@ -512,7 +507,7 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
                                 </div>
                             </div>
                             <div class="absolute bottom-4 inset-x-0 text-center">
-                                <x-badge value="Scanning..." class="bg-base-900/60 text-base-100 border-base-300/20" />
+                                <x-badge value="Scanning..." class="bg-base-900/60 text-base-100 dark:text-white border-base-300/20" />
                             </div>
                         </div>
                     </div>
@@ -524,10 +519,18 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
 
                     <!-- Manual Input -->
                     <div class="space-y-2">
+                        <x-button
+                            icon="o-pencil-square"
+                            label="Manual Input"
+                            wire:click="enableManualInput"
+                            class="btn-outline w-full h-12 min-h-12 touch-manipulation"
+                            x-show="!$wire.showManualInput"
+                        />
+                    @if ($showManualInput)
                         <x-input 
                             placeholder="Atau input manual part number..." 
                             wire:model="supplyScannedCode" 
-                            class="w-full bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600 h-12"
+                            class="w-full bg-base-100 dark:bg-base-700 border-base-300 dark:border-base-600"
                             icon="o-pencil-square"
                         />
                         <x-button 
@@ -537,6 +540,7 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
                             class="btn-primary w-full h-12 min-h-12 touch-manipulation"
                             spinner="checkManualSupply"
                         />
+                    @endif
                     </div>
                 </div>
 
