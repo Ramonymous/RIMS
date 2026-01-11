@@ -592,21 +592,7 @@ new #[Layout('components.layouts.app')] #[Title('List Permintaan Part')] class e
                             autofocus 
                             :hint="$supplyMaxQty == 0 ? 'Stok kosong' : 'Masukkan jumlah antara 1 dan ' . $supplyMaxQty"
                             :error="$supplyMaxQty == 0"
-                        />
-                        
-                        <!-- Quick Select Buttons -->
-                        @if($supplyMaxQty > 0)
-                        <div class="flex gap-2">
-                            @foreach([$supplyingItem->quantity, min($supplyMaxQty, $supplyingItem->quantity), $supplyMaxQty] as $quickQty)
-                            <x-button 
-                                :label="$quickQty"
-                                wire:click="$set('supplyQtyInput', {{ $quickQty }})"
-                                class="btn-outline btn-sm flex-1 h-10 touch-manipulation"
-                                :disabled="$quickQty > $supplyMaxQty"
-                            />
-                            @endforeach
-                        </div>
-                        @endif
+                        />                        
                     </div>
                 </div>
             </div>
