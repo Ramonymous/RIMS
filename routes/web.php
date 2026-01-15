@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use Illuminate\Http\Request;
- 
+use App\Models\Movement;
+
 // Users will be redirected to this route if not logged in
 Volt::route('/login', 'login')->name('login');
 
@@ -99,4 +100,36 @@ Route::middleware('auth')->group(function () {
     Volt::route('/stock-movements', 'stock-movements')->name('stock-movements');
     Volt::route('/telegram-settings', 'telegram-settings')->name('telegram-settings');
 
+});
+
+Route::get('/api/movements', function (Request $request) {
+
+    $data = Movement::query()
+        ->with('part:id,part_number')
+        ->when($request->part_number, fn ($q) =>
+            $q->whereHas('part', fn ($pq) =>
+                $pq->where('part_number', 'like', '%' . $request->part_number . '%')
+            )
+        )
+        ->when($request->start_date, fn ($q) =>
+            $q->whereDate('created_at', '>=', $request->start_date)
+        )
+        ->when($request->end_date, fn ($q) =>
+            $q->whereDate('created_at', '<=', $request->end_date)
+        )
+        ->orderBy('created_at')
+        ->get()
+        ->map(fn ($movement) => [
+            'part_number' => $movement->part->part_number ?? 'N/A',
+            'date'        => $movement->created_at->format('Y-m-d'), // DATE
+            'time'        => $movement->created_at->format('H:i:s'), // TIME
+            'type'        => strtoupper($movement->type),            // IN / OUT
+            'qty'         => (int) $movement->qty,
+        ]);
+
+    return response()->json([
+        'success' => true,
+        'count'   => $data->count(),
+        'data'    => $data,
+    ]);
 });
